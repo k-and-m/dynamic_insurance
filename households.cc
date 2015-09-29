@@ -238,8 +238,6 @@ void Household::test(int newAggState, int newPhiState, double r) {
 	double b = oldAssetDist[BSTATE];
 	k1 = MAX(k1, MIN_CAPITAL);
 	k2 = MAX(k2, MIN_CAPITAL);
-	//double mgmt = oldAssetDist[MGMT_C1_STATE];
-	//mgmt = MAX(MIN(mgmt, MAX_MGMT), MIN_MGMT);
 
 	double randNum = distr(gener);
 	VecInt newSt = s_proc->getCondNewState(curSt, newAggState, newPhiState, randNum);
