@@ -22,7 +22,9 @@ public:
 	~Economy();
 	void initialize(const EquilFns &pol, const StochProc& proc, const State& p_currentState);
 	void simulateOnePeriod(int newPhiState);
+	void testOnePeriod(int newPhiState, double r, double randNum) const;
 	double getAverage(unsigned int state);
+	double getAverageTest(unsigned int state) const;
 	double getAverageAssets();
 	void printEconomy(std::string fileName);
 protected:

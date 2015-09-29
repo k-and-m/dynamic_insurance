@@ -24,10 +24,11 @@ public:
 	void setInitialState(const State& p_currentState);
 	void setAggState(int newAggState, int newPhiState);
 	void iterate(int newAggState, int newPhiState);
-	void test(int newAggState, int newPhiState, double r);
+	void test(int newAggState, int newPhiState, double r, double randNum);
 	double getCurrentState(int whichState);
 	double getPreviousState(int whichState);
 	double getCurrentAsset(int whichAsset);
+	double getTestAsset(int whichAsset);
 	string toString();
 
 protected:
@@ -37,6 +38,7 @@ protected:
 	VecDoub oldAssetDist;
 	State currentState;
 	VecDoub currentAssetDist;
+	VecDoub testAssetDist;
 	const StochProc *s_proc;
 	uniform_real_distribution<double> distr;
 	mt19937 gener;
