@@ -9,6 +9,9 @@ WorldEconomy::WorldEconomy(int p_numCountries, int currentState) : numCountries(
 	distr = uniform_real_distribution<double>(0.0, 1.0);
 	gener = mt19937(WORLD_ECON_SEED);
 
+	testdistr = uniform_real_distribution<double>(0.0, 1.0);
+	testgener = mt19937(WORLD_ECON_SEED);
+
 	history.resize(TOTALPERIODS);
 	for (int i = 0; i < TOTALPERIODS; i++){
 		history[i].resize(p_numCountries + 1);
@@ -45,6 +48,8 @@ void WorldEconomy::simulateToSS(){
 void WorldEconomy::simulateNPeriods(int n)
 {
 	for (int index = 0; index < n; index++){
+		testSeed = testdistr(testgener);
+		zero(0, 0.2, 0.1, *this);
 		simulateOnePeriod();
 	}
 }
@@ -62,6 +67,21 @@ void WorldEconomy::simulateOnePeriod()
 	if (currentPeriod % 100 == 0){
 		std::cout << "Simulating period " << currentPeriod << std::endl << std::flush;
 	}
+}
+
+double WorldEconomy::operator() (double r) const
+{
+	int localcurSt = myStoch[0]->getCondNewPhi(curSt, testSeed);
+	for (int i = 0; i < numCountries; i++) {
+		e[i]->testOnePeriod(localcurSt, r, testSeed+i);
+	}
+
+	double retVal = 0;
+	for (int i = 0; i < numCountries; i++) {
+		retVal += e[i]->getAverageTest(BSTATE);
+	}
+
+	return retVal;
 }
 
 double WorldEconomy::distance(VecDoub targets)
