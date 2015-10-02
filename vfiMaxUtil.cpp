@@ -10,11 +10,11 @@ vfiMaxUtil::~vfiMaxUtil()
 {
 }
 
-double vfiMaxUtil::calculateCurrentAssets(const double k1, const double k2, const double bonds/*, const double mgmtprime*/) const{
+double vfiMaxUtil::calculateCurrentAssets(const double k1, const double k2, const double bonds, double r) const{
 	int curAgg = curSt->current_indices[AGG_SHOCK_STATE];
 	int curPhi = curSt->current_indices[PHI_STATE];
 
-	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * k1) + (k2) + (1 + curSt->getRecursiveVal(P_R)) * bonds
+	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * k1) + (k2) + (1 + r) * bonds
 		+ prod_fn(k1, k2, /*mgmtprime,*/ *curSt, curStoch);
 
 	if (nextAssets != nextAssets){
@@ -24,7 +24,7 @@ double vfiMaxUtil::calculateCurrentAssets(const double k1, const double k2, cons
 			<< "K1: " << k1 << std::endl
 			<< "P2: " << 1 << std::endl
 			<< "K2: " << k2 << std::endl
-			<< "r: " << curSt->getRecursiveVal(P_R) << std::endl
+			<< "r: " << r << std::endl
 			<< "B: " << bonds << std::endl
 			//<< "M1: " << mgmtprime << std::endl
 			<< "prod: " << prod_fn(k1, k2, /*mgmtprime,*/ *curSt, curStoch) << std::endl;

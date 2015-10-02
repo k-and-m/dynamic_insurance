@@ -80,30 +80,11 @@ void Household::setAggState(int newAggState, int newPhiState) {
 	exit(-1);
 }
 
-void Household::iterate(int newAggState, int newPhiState) {
+void Household::iterate(int newAggState, int newPhiState, double r) {
 	oldState = currentState;
 	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
 	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];
 	oldAssetDist[BSTATE] = currentAssetDist[BSTATE];
-	//oldAssetDist[MGMT_C1_STATE] = currentAssetDist[MGMT_C1_STATE];
-
-	/*
-	vector<vector<VecDoub>> k1Grid,k2Grid,bGrid;
-	k1Grid.resize(AGG_ASSET_SIZE);
-	k2Grid.resize(AGG_ASSET_SIZE);
-	bGrid.resize(AGG_ASSET_SIZE);
-	for (int h = 0; h < AGG_ASSET_SIZE; h++){
-		k1Grid[h].resize(AGG_ASSET_SIZE);
-		k2Grid[h].resize(AGG_ASSET_SIZE);
-		bGrid[h].resize(AGG_ASSET_SIZE);
-		for (int i = 0; i < AGG_ASSET_SIZE; i++){
-			k1Grid[h][i].resize(ASSET_SIZE);
-			k2Grid[h][i].resize(ASSET_SIZE);
-			bGrid[h][i].resize(ASSET_SIZE);
-		}
-	}
-	//VecDoub mgmtc1Grid(ASSET_SIZE);
-	*/
 
 	VecInt curSt = VecInt(NUM_SHOCK_VARS);
 	curSt[EF_K1] = oldState.current_indices[CAP1_SHOCK_STATE];
@@ -117,8 +98,7 @@ void Household::iterate(int newAggState, int newPhiState) {
 	double b = oldAssetDist[BSTATE];
 	k1 = MAX(k1, MIN_CAPITAL);
 	k2 = MAX(k2, MIN_CAPITAL);
-	//double mgmt = oldAssetDist[MGMT_C1_STATE];
-	//mgmt = MAX(MIN(mgmt, MAX_MGMT), MIN_MGMT);
+
 
 	double randNum = distr(gener);
 	VecInt newSt = s_proc->getCondNewState(curSt, newAggState, newPhiState, randNum);
@@ -142,7 +122,7 @@ void Household::iterate(int newAggState, int newPhiState) {
 
 	vfiMaxUtil vfiMU = vfiMaxUtil(currentState,*s_proc,*valAndPol);
 
-	currentState.current_states[ASTATE] = vfiMU.calculateCurrentAssets(k1, k2, b/*, mgmt*/);
+	currentState.current_states[ASTATE] = vfiMU.calculateCurrentAssets(k1, k2, b, r);
 	if (currentState.current_states[ASTATE] != currentState.current_states[ASTATE]){
 		cout << "ERROR! Household.cc, interate() : currentState.current_state[ASTATE]=NaN" << endl;
 		exit(-1);
@@ -262,7 +242,7 @@ void Household::test(int newAggState, int newPhiState, double r, double randNum)
 
 	vfiMaxUtil vfiMU = vfiMaxUtil(localCurrentState, *s_proc, *valAndPol);
 
-	localCurrentState.current_states[ASTATE] = vfiMU.calculateCurrentAssets(k1, k2, b/*, mgmt*/);
+	localCurrentState.current_states[ASTATE] = vfiMU.calculateCurrentAssets(k1, k2, b, r);
 	if (localCurrentState.current_states[ASTATE] != localCurrentState.current_states[ASTATE]) {
 		cout << "ERROR! Household.cc, interate() : currentState.current_state[ASTATE]=NaN" << endl;
 		exit(-1);

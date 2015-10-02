@@ -23,7 +23,7 @@ public:
 	~Household();
 	void setInitialState(const State& p_currentState);
 	void setAggState(int newAggState, int newPhiState);
-	void iterate(int newAggState, int newPhiState);
+	void iterate(int newAggState, int newPhiState, double r);
 	void test(int newAggState, int newPhiState, double r, double randNum);
 	double getCurrentState(int whichState);
 	double getPreviousState(int whichState);
