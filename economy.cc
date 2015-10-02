@@ -28,7 +28,7 @@ void Economy::initialize(const EquilFns &pol, const StochProc& proc, const State
 	}
 
 	for (unsigned int i = 0; i < econSize; i++){
-		myHHs[i]->setInitialState(p_currentState);
+		myHHs[i]->setRandomInitialState(p_currentState);
 	}
 }
 

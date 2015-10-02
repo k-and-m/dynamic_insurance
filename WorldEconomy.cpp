@@ -49,8 +49,7 @@ void WorldEconomy::simulateNPeriods(int n)
 {
 	for (int index = 0; index < n; index++){
 		testSeed = testdistr(testgener);
-		double r=zero(0, 0.2, 0.1, *this);
-		exit(-1);
+		double r=zero(-1, 0.2, 0.001, *this);
 		simulateOnePeriod(r);
 	}
 }
@@ -81,32 +80,8 @@ double WorldEconomy::operator() (double r) const
 	double retVal = 0;
 	for (int i = 0; i < numCountries; i++) {
 		retVal += e[i]->getAverageTest(BSTATE);
-		std::cout << "i = " << i << " retVal = " << retVal << std::endl;
 	}
 
-#if 1
-	double totalK1 = 0;
-	double totalK2 = 0;
-	double totalB = 0;
-	std::cout << "State = " << localcurSt << std::endl;
-	std::cout << "r = " << r << std::endl;
-	std::cout << "Country                K1                 K2                  B                  " << std::endl;
-	for (int i = 0; i < numCountries; i++) {
-		totalK1 += e[i]->getAverageTest(K1STATE);
-		totalK2 += e[i]->getAverageTest(K2STATE);
-		totalB += e[i]->getAverageTest(BSTATE);
-		std::cout << i + 1 << "(" << myStoch[i]->shocks[localcurSt][0][0][0][0][EF_PHI] << ")               " << e[i]->getAverageTest(K1STATE)
-			<< "          " << e[i]->getAverageTest(K2STATE)
-			<< "          " << e[i]->getAverageTest(BSTATE)
-			<< std::endl;
-	}
-
-	double c1Prop = 0.3;
-	double c2Prop = 0.7;
-
-	std::cout << "total                " << totalK1 << "          " << totalK2 << "          " << totalB << endl;
-	std::cout << "target                  " << c1Prop << "              " << c2Prop << "                 0" << endl;
-#endif
 	return retVal;
 }
 
@@ -130,7 +105,7 @@ double WorldEconomy::distance(VecDoub targets, int targetPhi)
 	curSt = targetPhi;
 	for (int i = 0; i < numCountries; i++){
 		testSeed = testdistr(testgener);
-		double r = zero(0, 0.2, 0.1, *this);
+		double r = zero(-1, 0.2, 0.001, *this);
 		e[i]->simulateOnePeriod(targetPhi,r);
 	}
 

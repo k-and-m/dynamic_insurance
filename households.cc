@@ -73,6 +73,26 @@ void Household::setInitialState(const State& p_currentState) {
 	currentAssetDist[K2STATE] = MIN_CAPITAL;
 	//currentAssetDist[MGMT_C1_STATE] = 1;
 	currentAssetDist[BSTATE] = p_currentState.current_states[ASTATE] - 2 * MIN_CAPITAL;
+
+	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
+	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];
+	oldAssetDist[BSTATE] = currentAssetDist[BSTATE];
+
+}
+
+void Household::setRandomInitialState(const State& p_currentState) {
+	oldState = p_currentState;
+	currentState = p_currentState;
+	currentAssetDist[K1STATE] = MIN_CAPITAL;
+	currentAssetDist[K2STATE] = MIN_CAPITAL;
+	double randNum = distr(gener);
+	currentState.current_indices[ASTATE] = floor(randNum*ASSET_SIZE);
+	currentState.current_states[ASTATE] = s_proc->assets[currentState.current_indices[ASTATE]];
+	currentAssetDist[BSTATE] = currentState.current_states[ASTATE] - 2 * MIN_CAPITAL;
+
+	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
+	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];
+	oldAssetDist[BSTATE] = currentAssetDist[BSTATE];
 }
 
 void Household::setAggState(int newAggState, int newPhiState) {
@@ -98,7 +118,6 @@ void Household::iterate(int newAggState, int newPhiState, double r) {
 	double b = oldAssetDist[BSTATE];
 	k1 = MAX(k1, MIN_CAPITAL);
 	k2 = MAX(k2, MIN_CAPITAL);
-
 
 	double randNum = distr(gener);
 	VecInt newSt = s_proc->getCondNewState(curSt, newAggState, newPhiState, randNum);

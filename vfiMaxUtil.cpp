@@ -14,7 +14,7 @@ double vfiMaxUtil::calculateCurrentAssets(const double k1, const double k2, cons
 	int curAgg = curSt->current_indices[AGG_SHOCK_STATE];
 	int curPhi = curSt->current_indices[PHI_STATE];
 
-	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * k1) + (k2) + (1 + r) * bonds
+	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2) + (1 + r) * bonds
 		+ prod_fn(k1, k2, /*mgmtprime,*/ *curSt, curStoch);
 
 	if (nextAssets != nextAssets){
@@ -38,7 +38,7 @@ double vfiMaxUtil::calculateTestAssets(const double k1, const double k2, const d
 	int curAgg = curSt->current_indices[AGG_SHOCK_STATE];
 	int curPhi = curSt->current_indices[PHI_STATE];
 
-	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * k1) + (k2) + (1 + r) * bonds
+	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2) + (1 + r) * bonds
 		+ prod_fn(k1, k2, /*mgmtprime,*/ *curSt, curStoch);
 
 	if (nextAssets != nextAssets) {
@@ -89,7 +89,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 	int curAgg = curSt->current_indices[AGG_SHOCK_STATE];
 	int curPhi = curSt->current_indices[PHI_STATE];
 
-	consumption = curSt->current_states[ASTATE] - (curSt->getTau() * k1prime) - (k2prime) - bprime;
+	consumption = curSt->current_states[ASTATE] - (curSt->getTau() * NOMINAL_PRICE * k1prime) - (NOMINAL_PRICE * k2prime) - bprime;
 
 	if (consumption <= 0) {
 		penalty = utilityFunctions::integer_power(1 + abs(consumption) + 0.001, 10) - 1;
@@ -154,8 +154,8 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 							newState.current_indices[AGG_SHOCK_STATE] = h;
 							newState.current_indices[PHI_STATE] = g;
 
-							double aprime = get_wage(newState, curStoch) + (curSt->getTau() * k1prime)
-								+ (k2prime)
+							double aprime = get_wage(newState, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1prime)
+								+ (NOMINAL_PRICE * k2prime)
 								+ (1 + curSt->getRecursiveVal(P_R)) * bprime
 								+ prod_fn(k1prime, k2prime, /*c1mgmt,*/ newState, curStoch);
 
