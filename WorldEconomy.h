@@ -38,7 +38,7 @@ private:
 	int testSeed;
 
 	double distance(VecDoub targets, int targetPhi);
-	void simulateOnePeriod();
+	void simulateOnePeriod(double r);
 };
 
 #endif

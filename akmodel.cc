@@ -119,7 +119,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& prices, double c1prop, i
 	initialize(orig1, myphis);
 	std::cout << "Solving Country 1" << std::endl;
 	solve(myphis, prices, orig1, final1);
-#if 0
+#if 1
 	printResults(final1, myphis, C1);
 #else
 	std::cout << "Skipping printing" << std::endl;
@@ -135,7 +135,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& prices, double c1prop, i
 	initialize(orig2, myphis);
 	std::cout << "Solving Country 2" << std::endl;
 	solve(myphis, prices, orig2, final2);
-#if 0
+#if 1
 	printResults(final2, myphis, C2);
 #else
 	std::cout << "Skipping printing" << std::endl;
