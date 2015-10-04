@@ -145,7 +145,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& prices, double c1prop, i
 	StochProc stoch2(myphis);
 	current2.defaultInitialState(stoch2);
 
-	std::cout << "Simulating world economies. " << NUMHHS << " households over " << NUMPERIODS << " periods." << std::endl;
+	std::cout << "Simulating world economies. " << NUMHHS << " households over " << TOTALPERIODS << " periods." << std::endl;
 	double xres = getNextParameters(final1, stoch1, current1, final2, stoch2, current2, c1prop);
 
 	ostringstream os;
@@ -178,10 +178,10 @@ double getNextParameters(const EquilFns& policies1, const StochProc& stoch1, con
 	vector<MatrixXf> data = simulate(numC, policies1, stoch1, curSt1, policies2, stoch2, curSt2, c1target);
 
 	MatrixXf badRHS = data[0].middleCols(0, numC+1);
-	MatrixXf badLHS = data[0].middleCols(numC, 1);
+	MatrixXf badLHS = data[0].middleCols(numC+1, 1);
 
 	MatrixXf goodRHS = data[1].middleCols(0, numC+1);
-	MatrixXf goodLHS = data[1].middleCols(numC, 1);
+	MatrixXf goodLHS = data[1].middleCols(numC+1, 1);
 
 	ofstream out_stream;
 	ostringstream os;
@@ -193,6 +193,8 @@ double getNextParameters(const EquilFns& policies1, const StochProc& stoch1, con
 	out_stream << badRHS << endl;
 	out_stream << "soln: " << endl << (badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS.col(0)) << endl;
 	out_stream.close();
+
+	//Update to return the beta estimates
 	exit(-1);
 }
 
@@ -217,14 +219,11 @@ vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& 
 	double mydist = we.distance(targets);
 	*/
 	vector<MatrixXf> mydata;
-	std::cout << "resizing" << std::endl;
 	mydata.resize(PHI_STATES);
-	std::cout << "complete resize" << std::endl;
 	vector<VecDoub> hist = we.getHistory();
 	int numGoodStates = 0;
 	int numBadStates = 0;
 	for (int i = 0; i < NUMPERIODS-1; i++){
-		std::cout << i << " ";
 		if (hist[i+SSPERIODS][2] == 1){
 			numGoodStates++;
 		}
@@ -238,7 +237,6 @@ vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& 
 	int currentGood = 0;
 	int currentBad = 0;
 	for (int i = 0; i < NUMPERIODS-1; i++){
-		std::cout << std::endl << i << " ";
 		if (hist[i + SSPERIODS][2] == 0){
 			if (currentBad > numBadStates){
 				std::cerr << "At bad state " << currentBad << " but only expect " << numBadStates;

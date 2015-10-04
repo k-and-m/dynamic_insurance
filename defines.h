@@ -103,7 +103,7 @@
 
 //definitions for Krusell-Smith economy simulation
 #define SSPERIODS 2500
-#define NUMPERIODS 5000
+#define NUMPERIODS 1500
 #define TOTALPERIODS SSPERIODS+NUMPERIODS
 #define NUMHHS 10000
 

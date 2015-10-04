@@ -49,7 +49,12 @@ void WorldEconomy::simulateNPeriods(int n)
 {
 	for (int index = 0; index < n; index++){
 		testSeed = testdistr(testgener);
-		double r=zero(-1, 0.2, 0.001, *this);
+#if 1
+		double r=zero(-1, 1, 0.00001, *this);
+#else
+		double r = 0;
+		double netBonds = glomin(-1, 1, 0, 1000, 0.001, 0.0001, *this, r);
+#endif
 		simulateOnePeriod(r);
 	}
 }
@@ -60,14 +65,14 @@ void WorldEconomy::simulateOnePeriod(double r)
 	curSt = myStoch[0]->getCondNewPhi(curSt, randNum);
 	history[currentPeriod][numCountries] = curSt;
 	history[currentPeriod][numCountries+1] = r;
+	double netBonds = 0;
 	for (int i = 0; i < numCountries; i++){
 		e[i]->simulateOnePeriod(curSt, r);
 		history[currentPeriod][i] = e[i]->getAverageAssets();
+		netBonds += e[i]->getAverage(BSTATE);
 	}
+	std::cout << "Period " << currentPeriod << " , Net Bonds: " << netBonds << " , r: " << r << std::endl;
 	currentPeriod += 1;
-	if (currentPeriod % 100 == 0){
-		std::cout << "Simulating period " << currentPeriod << std::endl << std::flush;
-	}
 }
 
 double WorldEconomy::operator() (double r) const
@@ -105,7 +110,12 @@ double WorldEconomy::distance(VecDoub targets, int targetPhi)
 	curSt = targetPhi;
 	for (int i = 0; i < numCountries; i++){
 		testSeed = testdistr(testgener);
-		double r = zero(-1, 0.2, 0.001, *this);
+#if 1
+		double r = zero(-1, 1, 0.00001, *this);
+#else
+		double r = 0;
+		double netBonds = glomin(-1, 1, 0, 1000, 0.001, 0.0001, *this, r);
+#endif
 		e[i]->simulateOnePeriod(targetPhi,r);
 	}
 
