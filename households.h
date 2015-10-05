@@ -24,8 +24,8 @@ public:
 	void setInitialState(const State& p_currentState);
 	void setRandomInitialState(const State& p_currentState);
 	void setAggState(int newAggState, int newPhiState);
-	void iterate(int newAggState, int newPhiState, double r);
-	void test(int newAggState, int newPhiState, double r, double randNum);
+	void iterate(int newAggState, int newPhiState, double r, const double agg1, const double agg2);
+	void test(int newAggState, int newPhiState, double r, const double agg1, const double agg2, double randNum);
 	double getCurrentState(int whichState);
 	double getPreviousState(int whichState);
 	double getCurrentAsset(int whichAsset);

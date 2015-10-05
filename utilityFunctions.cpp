@@ -46,7 +46,7 @@ namespace utilityFunctions{
 		return retVal;
 	}
 
-	double interpolate(const VecDoub &x, const VecDoub &y, double a_prime) {
+	double interpolate(const VecDoub &x, const VecDoub::const_iterator y, double a_prime) {
 		using namespace std;
 
 		int right = 0;
@@ -54,27 +54,33 @@ namespace utilityFunctions{
 		double slope;
 		double distance;
 		double interp_val;
+		int size = x.size();
 
-		if (a_prime <= MIN_ASSETS) {
+		if (size == 1) {
+			std::cerr << "UtilityFunctions.cpp-interpolate():Should never pass a size 1 vector to interpolate" << std::endl << std::flush;
+			exit(-1);
+		}
+
+		if (a_prime <= x[0]) {
 			right = 1;
 			left = 0;
 		}
-		else if (a_prime >= MAX_ASSETS) {
-			right = ASSET_SIZE - 1;
+		else if (a_prime >= x[size-1]) {
+			right = size - 1;
 			left = right - 1;
 		}
 		else {
 			int i;
-			for (i = 0; i < ASSET_SIZE; i++) {
+			for (i = 0; i < size; i++) {
 				if (x[i] >= a_prime) {
 					right = i;
 					left = i - 1;
 					break;
 				}
 			}
-			if (i == ASSET_SIZE) {
+			if (i == size) {
 				cout << "interpolate: Error! Couldn't find aprime= " << a_prime << endl;
-				for (i = 0; i < ASSET_SIZE; i++) {
+				for (i = 0; i < size; i++) {
 					cout << x[i] << ",";
 				}
 				exit(-1);
@@ -85,47 +91,51 @@ namespace utilityFunctions{
 		interp_val = y[left] + distance * slope;
 
 		if (interp_val != interp_val) {
-			std::cout << "ERROR! akmodel.cc interpolate() - return value is NaN. "
+			std::cout << "ERROR! utilityFunctions-interpolate() - return value is NaN. "
 				<< y[right] << "-" << y[left] << "/(" << x[right] << "-"
 				<< x[left] << "), distance=" << distance << " slope=" << slope
 				<< " a_prime=" << a_prime << std::endl << std::flush;
+			std::cout << "left: " << left << "  right: " << right << "size: " << size << std::endl;
+			for (int i = 0; i < size; i++) {
+				std::cout << "x[" << i << "]: " << x[i] << std::endl;
+			}
 			exit(-1);
 		}
 
 		return interp_val;
 	}
 
-	double interpolate2d(const VecDoub &x1, const VecDoub &x2, const vector<VecDoub> &y, double x1_prime, double x2_prime) {
+	double interpolate2d(const VecDoub &x1, const VecDoub &x2, const vector<VecDoub>::const_iterator y, double x1_prime, double x2_prime) {
 		using namespace std;
 
 		if (AGG_ASSET_SIZE == 1){
-			return interpolate(x2, y[0], x2_prime);
+			return interpolate(x2, y[0].begin(), x2_prime);
 		}
 
 		VecDoub int1(AGG_ASSET_SIZE);
 
 		for (int i = 0; i < AGG_ASSET_SIZE; i++){
-			int1[i] = interpolate(x2, y[i], x2_prime);
+			int1[i] = interpolate(x2, y[i].begin(), x2_prime);
 		}
 
-		double interp_val = interpolate(x1, int1, x1_prime);
+		double interp_val = interpolate(x1, int1.begin(), x1_prime);
 		return interp_val;
 	}
 
-	double interpolate3d(const VecDoub &x1, const VecDoub &x2, const VecDoub &x3, const vector<vector<VecDoub>> &y, double x1_prime, double x2_prime, double x3_prime){
+	double interpolate3d(const VecDoub &x1, const VecDoub &x2, const VecDoub &x3, const vector<vector<VecDoub>>::const_iterator y, double x1_prime, double x2_prime, double x3_prime){
 		using namespace std;
 
 		if (AGG_ASSET_SIZE == 1){
-			return interpolate2d(x2, x3, y[0], x2_prime, x3_prime);
+			return interpolate2d(x2, x3, y[0].begin(), x2_prime, x3_prime);
 		}
 
 		VecDoub int1(AGG_ASSET_SIZE);
 
 		for (int i = 0; i < AGG_ASSET_SIZE; i++){
-			int1[i] = interpolate2d(x2, x3, y[i], x2_prime, x3_prime);
+			int1[i] = interpolate2d(x2, x3, y[i].begin(), x2_prime, x3_prime);
 		}
 
-		double interp_val = interpolate(x1, int1, x1_prime);
+		double interp_val = interpolate(x1, int1.begin(), x1_prime);
 		return interp_val;
 	}
 

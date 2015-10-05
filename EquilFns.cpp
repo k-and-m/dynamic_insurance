@@ -42,6 +42,29 @@ EquilFns::EquilFns() {
 			}
 		}
 	}
+
+	reordered_value_fn.resize(PHI_STATES);
+	for (int f = 0; f < PHI_STATES; f++) {
+		reordered_value_fn[f].resize(AGG_SHOCK_SIZE);
+		for (int g = 0; g < AGG_SHOCK_SIZE; g++) {
+			reordered_value_fn[f][g].resize(CAP_SHOCK_SIZE);
+			for (int h = 0; h < CAP_SHOCK_SIZE; h++) {
+				reordered_value_fn[f][g][h].resize(CAP_SHOCK_SIZE);
+				for (int i = 0; i < CAP_SHOCK_SIZE; i++) {
+					reordered_value_fn[f][g][h][i].resize(WAGE_SHOCK_SIZE);
+					for (int l = 0; l < WAGE_SHOCK_SIZE; l++) {
+						reordered_value_fn[f][g][h][i][l].resize(AGG_ASSET_SIZE);
+						for (int ll = 0; ll < AGG_ASSET_SIZE; ll++) {
+							reordered_value_fn[f][g][h][i][l][ll].resize(AGG_ASSET_SIZE);
+							for (int m = 0; m < AGG_ASSET_SIZE; m++) {
+								reordered_value_fn[f][g][h][i][l][ll][m].resize(ASSET_SIZE);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 EquilFns::~EquilFns() {
@@ -73,6 +96,54 @@ EquilFns& EquilFns::operator=(const EquilFns& fnSource) {
 				}
 			}
 		}
+
+		for (int f = 0; f < PHI_STATES; f++) {
+			for (int g = 0; g < AGG_SHOCK_SIZE; g++) {
+				for (int h = 0; h < CAP_SHOCK_SIZE; h++) {
+					for (int i = 0; i < CAP_SHOCK_SIZE; i++) {
+						for (int l = 0; l < WAGE_SHOCK_SIZE; l++) {
+							for (int ll = 0; ll < AGG_ASSET_SIZE; ll++) {
+								for (int m = 0; m < AGG_ASSET_SIZE; m++) {
+									for (int n = 0; n < ASSET_SIZE; n++) {
+										reordered_value_fn[f][g][h][i][l][ll][m][n] =
+											fnSource.reordered_value_fn[f][g][h][i][l][ll][m][n];
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 	return *this;
+}
+
+void EquilFns::setValueFn(VecInt_I param, const double val) {
+	if (param.size() != 8) {
+		std::cerr << "EquilFns.setValueFn(): Expect 8 indicies. Only got " << param.size() << std::endl;
+		exit(-1);
+	}
+
+	value_fn[param[0]][param[1]][param[2]][param[3]][param[4]][param[5]][param[6]][param[7]] = val;
+	reordered_value_fn[param[2]][param[3]][param[5]][param[6]][param[7]][param[0]][param[1]][param[4]] = val;
+
+}
+
+double EquilFns::getValueFn(VecInt_I param) const{
+	if (param.size() != 8) {
+		std::cerr << "EquilFns.getValueFn(): Expect 8 indicies. Only got " << param.size() << std::endl;
+		exit(-1);
+	}
+
+	return value_fn[param[0]][param[1]][param[2]][param[3]][param[4]][param[5]][param[6]][param[7]];
+}
+
+vector<vector<VecDoub>>::const_iterator EquilFns::getReorderedValueFnVector(VecInt_I param) const{
+	if (param.size() != 5) {
+		std::cerr << "EquilFns.getReorderedValueFnVector(): Expect 7 indicies. Only got " << param.size() << std::endl;
+		exit(-1);
+	}
+
+	return reordered_value_fn[param[0]][param[1]][param[2]][param[3]][param[4]].cbegin();
 }

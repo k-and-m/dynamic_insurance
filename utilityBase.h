@@ -7,6 +7,7 @@
 
 class utilityBase
 {
+
 protected:
 	const State* curSt;
 	const StochProc& curStoch;

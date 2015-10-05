@@ -84,7 +84,7 @@ StochProc::StochProc(const StochProc& init){
 		assets[i] = init.assets[i];
 	}
 
-	for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
+	for (int i = 0; i < AGG_ASSET_SIZE; i++) {
 		aggAssets[i] = init.aggAssets[i];
 	}
 

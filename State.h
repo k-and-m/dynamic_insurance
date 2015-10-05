@@ -1,9 +1,13 @@
 #pragma once
 #include "typedefs.h"
 #include "StochProc.h"
+#include "matrix.h"
 
 class State
 {
+private:
+	Mat3Doub coefficients;
+
 public:
 	VecDoub current_states;
 	VecInt current_indices;
@@ -12,10 +16,9 @@ public:
 #endif
 	VecDoub phi;
 	VecDoub prices;
-	vector<vector<VecDoub>> coefficients;
 
 	State();
-	State(const VecDoub& phi1, const VecDoub& prices);
+	State(const VecDoub& phi1, const VecDoub& prices, const Mat3Doub& recursEst);
 	State(const State& orig);
 	State& operator=(const State& fnSource);
 	double getRecursiveVal(int whichVal) const;

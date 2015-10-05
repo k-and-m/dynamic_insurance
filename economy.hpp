@@ -21,8 +21,8 @@ public:
 	Economy(int numHouseholds, int seed);
 	~Economy();
 	void initialize(const EquilFns &pol, const StochProc& proc, const State& p_currentState);
-	void simulateOnePeriod(int newPhiState, double r);
-	void testOnePeriod(int newPhiState, double r, double randNum) const;
+	void simulateOnePeriod(int newPhiState, double r, double agg1, double agg2);
+	void testOnePeriod(int newPhiState, double r, double agg1, double agg2, double randNum) const;
 	double getAverage(unsigned int state);
 	double getAverageTest(unsigned int state) const;
 	double getAverageAssets();

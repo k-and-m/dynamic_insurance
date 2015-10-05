@@ -100,7 +100,7 @@ void Household::setAggState(int newAggState, int newPhiState) {
 	exit(-1);
 }
 
-void Household::iterate(int newAggState, int newPhiState, double r) {
+void Household::iterate(int newAggState, int newPhiState, double r, const double agg1, const double agg2) {
 	oldState = currentState;
 	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
 	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];
@@ -154,7 +154,10 @@ void Household::iterate(int newAggState, int newPhiState, double r) {
 		currentState.current_states[ASTATE] = MIN_ASSETS;
 	}
 
-	currentState.current_states[AGG_ASSET_STATE] = vfiMU.getNextPeriodAggAssets(1,currentState.current_states[AGG_ASSET_STATE]);
+	oldState.current_states[AGG_ASSET_STATE] = agg1;
+	oldState.current_states[AGG2_ASSET_STATE] = agg2;
+
+	currentState.current_states[AGG_ASSET_STATE] = oldState.getRecursiveVal(AGG_ASSET_C1);
 	if (currentState.current_states[AGG_ASSET_STATE] != currentState.current_states[AGG_ASSET_STATE]){
 		cout << "ERROR! Household.cc, interate() : currentState.current_state[AGG_ASSET_STATE]=NaN" << endl;
 		exit(-1);
@@ -167,7 +170,7 @@ void Household::iterate(int newAggState, int newPhiState, double r) {
 		currentState.current_states[AGG_ASSET_STATE] = MIN_AGG_ASSETS;
 	}
 
-	currentState.current_states[AGG2_ASSET_STATE] = vfiMU.getNextPeriodAggAssets(2,currentState.current_states[AGG2_ASSET_STATE]);
+	currentState.current_states[AGG_ASSET_STATE] = oldState.getRecursiveVal(AGG_ASSET_C2);
 	if (currentState.current_states[AGG2_ASSET_STATE] != currentState.current_states[AGG2_ASSET_STATE]){
 		cout << "ERROR! Household.cc, interate() : currentState.current_state[AGG2_ASSET_STATE]=NaN" << endl;
 		exit(-1);
@@ -205,11 +208,11 @@ void Household::iterate(int newAggState, int newPhiState, double r) {
 	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, bGrid,
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 #else
-	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE],
+	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
-	double k2prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K2STATE],
+	double k2prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K2STATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
-	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE],
+	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 #endif
 
@@ -224,7 +227,7 @@ void Household::iterate(int newAggState, int newPhiState, double r) {
 	currentAssetDist[BSTATE] = bprime;
 	//currentAssetDist[MGMT_C1_STATE] = mgmtprime;
 }
-void Household::test(int newAggState, int newPhiState, double r, double randNum){
+void Household::test(int newAggState, int newPhiState, double r, const double agg1, const double agg2, double randNum){
 	
 	VecInt curSt = VecInt(NUM_SHOCK_VARS);
 	curSt[EF_K1] = oldState.current_indices[CAP1_SHOCK_STATE];
@@ -274,7 +277,12 @@ void Household::test(int newAggState, int newPhiState, double r, double randNum)
 		localCurrentState.current_states[ASTATE] = MIN_ASSETS;
 	}
 
-	localCurrentState.current_states[AGG_ASSET_STATE] = vfiMU.getNextPeriodAggAssets(1, localCurrentState.current_states[AGG_ASSET_STATE]);
+	localCurrentState.current_states[AGG_ASSET_STATE] = agg1;
+	localCurrentState.current_states[AGG2_ASSET_STATE] = agg2;
+
+	double temp1 = localCurrentState.getRecursiveVal(AGG_ASSET_C1);
+	double temp2 = localCurrentState.getRecursiveVal(AGG_ASSET_C2);
+	localCurrentState.current_states[AGG_ASSET_STATE] = temp1;
 	if (localCurrentState.current_states[AGG_ASSET_STATE] != localCurrentState.current_states[AGG_ASSET_STATE]) {
 		cout << "ERROR! Household.cc, interate() : localCurrentState.current_state[AGG_ASSET_STATE]=NaN" << endl;
 		exit(-1);
@@ -287,7 +295,7 @@ void Household::test(int newAggState, int newPhiState, double r, double randNum)
 		localCurrentState.current_states[AGG_ASSET_STATE] = MIN_AGG_ASSETS;
 	}
 
-	localCurrentState.current_states[AGG2_ASSET_STATE] = vfiMU.getNextPeriodAggAssets(2, localCurrentState.current_states[AGG2_ASSET_STATE]);
+	localCurrentState.current_states[AGG2_ASSET_STATE] = temp2;
 	if (localCurrentState.current_states[AGG2_ASSET_STATE] != localCurrentState.current_states[AGG2_ASSET_STATE]) {
 		cout << "ERROR! Household.cc, interate() : currentState.current_state[AGG2_ASSET_STATE]=NaN" << endl;
 		exit(-1);
@@ -300,11 +308,11 @@ void Household::test(int newAggState, int newPhiState, double r, double randNum)
 		localCurrentState.current_states[AGG2_ASSET_STATE] = MIN_AGG_ASSETS;
 	}
 
-	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE],
+	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
-	double k2prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K2STATE],
+	double k2prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K2STATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
-	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE],
+	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
 
 	testAssetDist[K1STATE] = k1prime;

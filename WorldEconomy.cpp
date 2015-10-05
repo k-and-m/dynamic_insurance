@@ -67,7 +67,7 @@ void WorldEconomy::simulateOnePeriod(double r)
 	history[currentPeriod][numCountries+1] = r;
 	double netBonds = 0;
 	for (int i = 0; i < numCountries; i++){
-		e[i]->simulateOnePeriod(curSt, r);
+		e[i]->simulateOnePeriod(curSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets());
 		history[currentPeriod][i] = e[i]->getAverageAssets();
 		netBonds += e[i]->getAverage(BSTATE);
 	}
@@ -79,7 +79,7 @@ double WorldEconomy::operator() (double r) const
 {
 	int localcurSt = myStoch[0]->getCondNewPhi(curSt, testSeed);
 	for (int i = 0; i < numCountries; i++) {
-		e[i]->testOnePeriod(localcurSt, r, testSeed+i);
+		e[i]->testOnePeriod(localcurSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets(), testSeed + i);
 	}
 
 	double retVal = 0;
@@ -89,7 +89,7 @@ double WorldEconomy::operator() (double r) const
 
 	return retVal;
 }
-
+/*
 double WorldEconomy::distance(VecDoub targets)
 {
 	if (targets.size() != numCountries){
@@ -151,7 +151,7 @@ double WorldEconomy::distance(VecDoub targets, int targetPhi)
 
 	return sqrt(k1d + k2d + bd);
 }
-
+*/
 void WorldEconomy::printEconomies(){
 
 	for (int i = 0; i < numCountries; i++){

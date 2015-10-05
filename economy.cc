@@ -56,17 +56,17 @@ double Economy::getAverageAssets(){
 	return total / econSize;
 }
 
-void Economy::simulateOnePeriod(int newPhiState, double r){
+void Economy::simulateOnePeriod(int newPhiState, double r, double agg1, double agg2){
 	phiState = newPhiState;
 #if OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(3)
 #endif
 	for (int i = 0; i < (int)econSize; i++){
-		myHHs[i]->iterate(0,newPhiState, r);
+		myHHs[i]->iterate(0,newPhiState, r, agg1, agg2);
 	}
 }
 
-void Economy::testOnePeriod(int newPhiState, double r, double randNum) const{
+void Economy::testOnePeriod(int newPhiState, double r, double agg1, double agg2, double randNum) const{
 	uniform_real_distribution<double> localdistr = uniform_real_distribution<double>(0.0, 1.0);
 	mt19937 localgener = mt19937(randNum);
 
@@ -74,7 +74,7 @@ void Economy::testOnePeriod(int newPhiState, double r, double randNum) const{
 #pragma omp parallel for schedule(dynamic) num_threads(3)
 #endif
 	for (int i = 0; i < (int)econSize; i++) {
-		myHHs[i]->test(0, newPhiState, r, localdistr(localgener));
+		myHHs[i]->test(0, newPhiState, r, agg1, agg2, localdistr(localgener));
 	}
 }
 

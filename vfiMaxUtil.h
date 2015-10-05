@@ -20,6 +20,5 @@ public:
 	bool constraintBinds() const final;
 	double calculateCurrentAssets(const double k1, const double k2, const double bonds, double r) const;
 	double calculateTestAssets(const double k1, const double k2, const double bonds, const double r) const;
-	double getNextPeriodAggAssets(int whichCountry, const double currentAggAsst) const;
 };
 
