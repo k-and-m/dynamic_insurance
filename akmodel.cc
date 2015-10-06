@@ -271,12 +271,12 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 			MatrixXf tempRHS = (hh == 0) ? badRHS : goodRHS;
 			int NUMROWS = tempLHS.rows();
 			for (int i = 0; i < NUMROWS; i++) {
-				TSS[h] += pow(log(tempLHS[i]), 2);
+				TSS[h] += (h == P_R) ? pow(tempLHS[i], 2) : pow(log(tempLHS[i]), 2);
 				double pred = 0;
 				for (int j = 0; j < 3; j++) {
 					pred += results[h][hh][j] * (j == 0) ? tempRHS(i, j) : log(tempRHS(i, j));
 				}
-				RSS[h] += pow(log(tempLHS[0]) - pred, 2);
+				RSS[h] += (h == P_R) ? pow(tempLHS[i] - pred, 2) : pow(log(tempLHS[i]) - pred, 2);
 			}
 		}
 		r_squared[h] = 1 - RSS[h] / TSS[h];
@@ -284,7 +284,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 		std::cout << "akmodel.getNextParams(): R-squared(" << h << ")=" << r_squared[h] << std::endl;
 	}
 
-#if 0
+#if 1
 	for (int h = 0; h < NUM_RECURSIVE_FNS; h++) {
 		for (int hh = 0; hh < PHI_STATES; hh++) {
 			std::cout << h << "," << hh << std::endl;

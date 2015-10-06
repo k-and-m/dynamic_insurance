@@ -50,7 +50,7 @@ void WorldEconomy::simulateNPeriods(int n)
 	for (int index = 0; index < n; index++){
 		testSeed = testdistr(testgener);
 #if 1
-		double r=zero(-3, 3, 0.00001, *this);
+		double r=zero(-5, 3, 0.00001, *this);
 #else
 		double r = 0;
 		double netBonds = glomin(-1, 1, 0, 1000, 0.001, 0.0001, *this, r);
