@@ -50,7 +50,7 @@ void WorldEconomy::simulateNPeriods(int n)
 	for (int index = 0; index < n; index++){
 		testSeed = testdistr(testgener);
 #if 1
-		double r=zero(-3, 1, 0.00001, *this);
+		double r=zero(0, 1, 0.00001, *this);
 #else
 		double r = 0;
 		double netBonds = glomin(-1, 1, 0, 1000, 0.001, 0.0001, *this, r);
@@ -64,7 +64,9 @@ void WorldEconomy::simulateOnePeriod(double r)
 	double randNum = distr(gener);
 	curSt = myStoch[0]->getCondNewPhi(curSt, randNum);
 	history[currentPeriod][numCountries] = curSt;
-	history[currentPeriod][numCountries+1] = r;
+	if (currentPeriod > 0) {
+		history[currentPeriod-1][numCountries + 1] = r;
+	}
 	double netBonds = 0;
 	for (int i = 0; i < numCountries; i++){
 		e[i]->simulateOnePeriod(curSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets());
