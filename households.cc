@@ -39,15 +39,29 @@ vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& Househo
 					for (int i = 0; i < CAP_SHOCK_SIZE; i++) {
 						reform_policy_fn[f][g][h][i].resize(WAGE_SHOCK_SIZE);
 						for (int ii = 0; ii < WAGE_SHOCK_SIZE; ii++) {
+#if K2CHOICE
 							reform_policy_fn[f][g][h][i][ii].resize(NUM_CHOICE_VARS);
 							for (int l = 0; l < NUM_CHOICE_VARS; l++) {
+#else
+							reform_policy_fn[f][g][h][i][ii].resize(NUM_CHOICE_VARS-1);
+							for (int l = 0; l < NUM_CHOICE_VARS-1; l++) {
+#endif
 								reform_policy_fn[f][g][h][i][ii][l].resize(AGG_ASSET_SIZE);
 								for (int ll = 0; ll < AGG_ASSET_SIZE; ll++) {
 									reform_policy_fn[f][g][h][i][ii][l][ll].resize(AGG_ASSET_SIZE);
 									for (int m = 0; m < AGG_ASSET_SIZE; m++) {
 										reform_policy_fn[f][g][h][i][ii][l][ll][m].resize(ASSET_SIZE);
 										for (int n = 0; n < ASSET_SIZE; n++) {
+#if K2CHOICE
 											reform_policy_fn[f][g][h][i][ii][l][ll][m][n] = param->policy_fn[ll][m][f][g][n][h][i][ii][l];
+#else
+											if (l == K1STATE) {
+												reform_policy_fn[f][g][h][i][ii][l][ll][m][n] = param->policy_fn[ll][m][f][g][n][h][i][ii][l];
+											}
+											else {
+												reform_policy_fn[f][g][h][i][ii][l][ll][m][n] = param->policy_fn[ll][m][f][g][n][h][i][ii][l+1];
+											}
+#endif
 										}
 									}
 								}
@@ -183,49 +197,24 @@ void Household::iterate(int newAggState, int newPhiState, double r, const double
 		currentState.current_states[AGG2_ASSET_STATE] = MIN_AGG_ASSETS;
 	}
 
-#if 0
-	for (int g = 0; g < AGG_ASSET_SIZE; g++) {
-		for (int h = 0; h < AGG_ASSET_SIZE; h++) {
-			for (int i = 0; i < ASSET_SIZE; i++) {
-				k1Grid[g][h][i] =
-					valAndPol->policy_fn[g][h][curSt[EF_PHI]][curSt[EF_A]][i][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE];
-				k2Grid[g][h][i] =
-					valAndPol->policy_fn[g][h][curSt[EF_PHI]][curSt[EF_A]][i][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K2STATE];
-				bGrid[g][h][i] =
-					valAndPol->policy_fn[g][h][curSt[EF_PHI]][curSt[EF_A]][i][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE];
-				/*
-				mgmtc1Grid[i] =
-				valAndPol->policy_fn[curSt[EF_PHI]][curSt[EF_A]][i][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][MGMT_C1_STATE];
-				*/
-			}
-		}
-	}
-
-	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, k1Grid,
-		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
-	double k2prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, k2Grid,
-		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
-	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, bGrid,
-		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
-#else
+#if K2CHOICE
 	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 	double k2prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K2STATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
+#else
+	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
+		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
+	double k2prime = k1prime * pow(oldState.getTau(), 1 - ALPHA1);
+	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
+		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 #endif
-
-
-	/*
-	double mgmtprime = utilityFunctions::interpolate(s_proc->assets, mgmtc1Grid,
-		currentState.current_states[ASTATE]);
-		*/
 
 	currentAssetDist[K1STATE] = k1prime;
 	currentAssetDist[K2STATE] = k2prime;
 	currentAssetDist[BSTATE] = bprime;
-	//currentAssetDist[MGMT_C1_STATE] = mgmtprime;
 }
 void Household::test(int newAggState, int newPhiState, double r, const double agg1, const double agg2, double randNum){
 	
@@ -308,13 +297,20 @@ void Household::test(int newAggState, int newPhiState, double r, const double ag
 		localCurrentState.current_states[AGG2_ASSET_STATE] = MIN_AGG_ASSETS;
 	}
 
+#if K2CHOICE
 	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
 	double k2prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K2STATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
 	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
-
+#else
+	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
+		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
+	double k2prime = k1prime * pow(oldState.getTau(), 1 - ALPHA1);
+	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
+		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
+#endif
 	testAssetDist[K1STATE] = k1prime;
 	testAssetDist[K2STATE] = k2prime;
 	testAssetDist[BSTATE] = bprime;

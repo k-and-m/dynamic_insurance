@@ -61,7 +61,7 @@
 #define THETA 1
 #define ALPHA1 0.75
 #define BETA 0.925
-#define MAX_ITER 100
+#define MAX_ITER 200
 
 //Definitions for state.current_states, which is a VecDoub of five dimensions.
 //Also, first two dimensions work for EquilFns.policy_fn.
