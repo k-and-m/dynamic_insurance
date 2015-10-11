@@ -60,6 +60,12 @@ double vfiMaxUtil::calculateTestAssets(const double k1, const double k2, const d
 
 double vfiMaxUtil::operator() (const VecDoub state_prime) const
 {
+
+	if (state_prime.size() != 2) {
+		std::cerr << "ERROR! vfiMaxUtil.operator(): only expect to search in 2 dimensions, not " << state_prime.size();
+		exit(-1);
+	}
+
 	double u = 0;
 	double k1prime, k2prime;
 	double bprime;
@@ -68,16 +74,18 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 	double consumption;
 
 	k1prime = MIN_CAPITAL + utilityFunctions::integer_power(state_prime[K1STATE], 2);
+#if K2CHOICE
 	k2prime = MIN_CAPITAL + utilityFunctions::integer_power(state_prime[K2STATE], 2);
 	bprime = MIN_BONDS + utilityFunctions::integer_power(state_prime[BSTATE], 2);
+#else
+	k2prime = k1prime * pow(curSt->getTau(), 1 - ALPHA1);
+	bprime = MIN_BONDS + utilityFunctions::integer_power(state_prime[BSTATE-1], 2);
+#endif
 
 	if (bprime != bprime) {
 		std::cout << "ERROR! vfiMaxUtil.cc utility() - bprime " << bprime;
 		exit(-1);
 	}
-
-	//c1mgmt = MIN_MGMT + utilityFunctions::integer_power(state_prime[MGMT_C1_STATE], 2);
-	//c1mgmt = utilityFunctions::boundValue(c1mgmt, MIN_MGMT, MAX_MGMT);
 
 	double x = getMaxBorrow(k1prime, k2prime/*, c1mgmt*/);
 	bprime = utilityFunctions::boundValue(bprime, x, 2 * MAX_ASSETS);
@@ -104,8 +112,14 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 			<< " k1prime=" << k1prime << " k2prime=" << k2prime
 			<< " bprime=" << bprime << " consumption=" << consumption
 			<< std::endl << " k1_input=" << state_prime[K1STATE]
-			<< " k2_input=" << state_prime[K2STATE] << " b_input="
+#if K2CHOICE
+			<< " k2_input=" << state_prime[K2STATE] 
+			<< " b_input="
 			<< state_prime[BSTATE] << std::endl << std::flush;
+#else
+			<< " b_input="
+			<< state_prime[BSTATE-1] << std::endl << std::flush;
+#endif
 		std::cout << "P1:" << curSt->getTau() << std::endl
 			<< "P2:" << 1 << std::endl
 			<< "r:" << curSt->getRecursiveVal(P_R) << std::endl;
@@ -309,11 +323,16 @@ double vfiMaxUtil::getBoundBorrow() const {
 }
 
 double vfiMaxUtil::getBoundUtil() const {
+#if K2CHOICE
 	VecDoub temp2 = VecDoub(NUM_CHOICE_VARS);
 	temp2[K1STATE] = 0;
 	temp2[K2STATE] = 0;
 	temp2[BSTATE] = sqrt(getBoundBorrow() - MIN_BONDS);
-	//temp2[MGMT_C1_STATE] = 7;
+#else
+	VecDoub temp2 = VecDoub(NUM_CHOICE_VARS-1);
+	temp2[K1STATE] = 0;
+	temp2[BSTATE-1] = sqrt(getBoundBorrow() - MIN_BONDS);
+#endif
 	return (*this)(temp2);
 }
 

@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 	phi[2] = 0;
 	phi[3] = 0;
 
-	tau[0] = 1.01;
+	tau[0] = 4.0;
 	double dis = solveProblem(phi, tau, 0.3, 0);
 #endif
 	std::cout << "soln dist: " << dis << endl;
@@ -112,11 +112,6 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 	EquilFns orig1, final1;
 	EquilFns orig2, final2;
 
-	VecDoub myphis = VecDoub(PHI_STATES);
-	for (int i = 0; i < PHI_STATES; i++) {
-		myphis[i] = phis[i];
-	}
-
 	double avgDist = 1;
 	Mat3Doub recursEst(NUM_RECURSIVE_FNS, PHI_STATES, 3);
 	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
@@ -135,6 +130,11 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 	}
 
 	for (int loopC = 0; (loopC < 20) && (avgDist>0.01); loopC++) {
+		VecDoub myphis = VecDoub(PHI_STATES);
+		for (int i = 0; i < PHI_STATES; i++) {
+			myphis[i] = phis[i];
+		}
+
 		initialize(orig1, myphis);
 		std::cout << "Solving Country 1" << std::endl;
 		solve(myphis, tau, orig1, final1, recursEst);
@@ -492,7 +492,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 
 	last_values = orig;
 
-	while (counter < MAX_ITER && diff > VAL_TOL) {
+	while (counter < MAX_ITER && diff > VAL_TOL) { 
 
 		counter++;
 #if OPENMP
@@ -505,8 +505,6 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 						for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
 							State current(phis, prices, recEst);
 							vfiMaxUtil ub = vfiMaxUtil(current, stoch, last_values);
-							//				eulerUtility ub = eulerUtility(current, stoch, last_values);
-
 #if AMOEBA
 							Amoeba am(MINIMIZATION_TOL);
 #endif
@@ -546,16 +544,24 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 
 										ub.updateCurrent(current);
 
+#if K2CHOICE
 										VecDoub temp1(NUM_CHOICE_VARS);
+#else
+										VecDoub temp1(NUM_CHOICE_VARS - 1);
+#endif
 										temp1[K1STATE] =
 											sqrt(
 												MAX(MIN_CAPITAL, last_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE])
 												- MIN_CAPITAL);
+#if K2CHOICE
 										temp1[K2STATE] =
 											sqrt(
 												MAX(MIN_CAPITAL, last_values.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE])
 												- MIN_CAPITAL);
 										temp1[BSTATE] =
+#else
+										temp1[BSTATE - 1] =
+#endif
 											sqrt(
 												MAX(MIN_BONDS, last_values.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE])
 												- MIN_BONDS);
@@ -574,11 +580,18 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 										//#endif
 										if (l == 0 && ll == 0) {
 											if (ub.constraintBinds()) {
+#if K2CHOICE
 												temp2 = VecDoub(NUM_CHOICE_VARS);
+#else
+												temp2 = VecDoub(NUM_CHOICE_VARS - 1);
+#endif
 												temp2[K1STATE] = 0;
+#if K2CHOICE
 												temp2[K2STATE] = 0;
 												temp2[BSTATE] = sqrt(ub.getBoundBorrow() - MIN_BONDS);
-												//temp2[MGMT_C1_STATE] = 7;
+#else
+												temp2[BSTATE - 1] = sqrt(ub.getBoundBorrow() - MIN_BONDS);
+#endif
 												minVal = ub.getBoundUtil();
 											}
 											else {
@@ -588,7 +601,15 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 												//#endif
 #if AMOEBA
 												const double delta = MAX(0.001, 0.1 * initial_point[K1STATE]);
+												if (initial_point.size() != 2) {
+													std::cerr << "akmodel.cc-solve(): initial point is not of size 2, but of size " << initial_point.size();
+													exit(-1);
+												}
 												temp2 = am.minimize(initial_point, delta, ub);
+												if (temp2.size() != 2) {
+													std::cerr << "ERROR! akmodel.cc - solve(): minimize returned vector of size " << temp2.size() << std::endl;
+													exit(-1);
+												}
 												minVal = ((vfiMaxUtil)ub)(temp2);
 #else
 												SimulatedAnnealingWorld saw(initial_point, 100, MAX_ITER / counter, MINIMIZATION_TOL, 0.9,
@@ -599,59 +620,55 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 												delete temp3;
 #endif
 											}
-											//#if IID_CAP==0
-											//								std::cerr<<"akmodel.cc:solve - Error. Expect iid capital shocks."<<std::endl;
-											//								exit(-1);
-											//#endif
 										}
 										else {
+#if K2CHOICE
 											temp2 = VecDoub(NUM_CHOICE_VARS);
+#else
+											temp2 = VecDoub(NUM_CHOICE_VARS - 1);
+#endif
 											temp2[K1STATE] =
 												sqrt(
 													in_process_values.policy_fn[g][gg][h][i][j][0][0][m][K1STATE]
 													- MIN_CAPITAL);
+#if K2CHOICE
 											temp2[K2STATE] =
 												sqrt(
 													in_process_values.policy_fn[g][gg][h][i][j][0][0][m][K2STATE]
 													- MIN_CAPITAL);
 											temp2[BSTATE] =
+#else
+											temp2[BSTATE-1]=
+#endif
 												sqrt(
 													in_process_values.policy_fn[g][gg][h][i][j][0][0][m][BSTATE]
 													- MIN_BONDS);
-											/*
-											temp2[MGMT_C1_STATE] =
-											sqrt(
-											in_process_values.policy_fn[h][i][j][0][0][m][MGMT_C1_STATE]
-											- MIN_MGMT);
-											*/
+
 											minVal =
 												-in_process_values.getValueFn(vect);
 										}
-										//#endif
 
 										in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE] =
 											MIN_CAPITAL + utilityFunctions::integer_power(temp2[K1STATE], 2);
 										in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE] =
+#if K2CHOICE
 											MIN_CAPITAL + utilityFunctions::integer_power(temp2[K2STATE], 2);
+#else
+											in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE] 
+											* pow(prices[0],1/(1-ALPHA1));
+#endif
 										in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE] =
+#if K2CHOICE
 											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE], 2);
-										/*
-										in_process_values.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE] =
-										MIN_MGMT + utilityFunctions::integer_power(temp2[MGMT_C1_STATE], 2);
-										in_process_values.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE] =
-										utilityFunctions::boundValue(in_process_values.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE], MIN_MGMT, MAX_MGMT);
-										if (temp2[K1STATE] == 0 && temp2[K2STATE] == 0){
-										in_process_values.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE] = 50;
-										}
-										*/
+#else
+											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE-1], 2);
+#endif
 										in_process_values.setValueFn(vect, -minVal);
 										in_process_values.consumption[g][gg][h][i][j][l][ll][m] =
 											current.current_states[ASTATE]
-											- (MIN_CAPITAL
-												+ utilityFunctions::integer_power(temp2[K1STATE], 2))
-											- (MIN_CAPITAL
-												+ utilityFunctions::integer_power(temp2[K2STATE], 2))
-											- (MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE], 2));
+											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE]
+											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE]
+											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE];
 									}
 								}
 							}
@@ -769,11 +786,6 @@ int policy_iteration(double difference, State& current, const StochProc& stoch,
 									altPol.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE] = sqrt(
 										temp.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE]
 										- MIN_BONDS);
-									/*
-									altPol.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE] = sqrt(
-									temp.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE]
-									- MIN_MGMT);
-									*/
 								}
 							}
 						}
@@ -818,12 +830,18 @@ int policy_iteration(double difference, State& current, const StochProc& stoch,
 
 										ub.updateCurrent(current);
 
+#if K2CHOICE
 										VecDoub policy = VecDoub(NUM_CHOICE_VARS);
+#else
+										VecDoub policy = VecDoub(NUM_CHOICE_VARS-1);
+#endif
 										policy[K1STATE] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE];
+#if K2CHOICE
 										policy[K2STATE] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE];
 										policy[BSTATE] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE];
-										//policy[MGMT_C1_STATE] = altPol.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE];
-
+#else
+										policy[BSTATE-1] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE];
+#endif
 										VecInt vect(8);
 										vect[0] = g;
 										vect[1] = gg;
@@ -1004,5 +1022,3 @@ double maxPolicyDistance(const EquilFns &a, const EquilFns &b,
 	}
 	return diff;
 }
-
-
