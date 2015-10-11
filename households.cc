@@ -208,7 +208,7 @@ void Household::iterate(int newAggState, int newPhiState, double r, const double
 	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 	double k2prime = k1prime * pow(oldState.getTau(), 1 - ALPHA1);
-	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
+	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE-1]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 #endif
 
@@ -308,7 +308,7 @@ void Household::test(int newAggState, int newPhiState, double r, const double ag
 	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
 	double k2prime = k1prime * pow(oldState.getTau(), 1 - ALPHA1);
-	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE]).begin(),
+	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE-1]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
 #endif
 	testAssetDist[K1STATE] = k1prime;
