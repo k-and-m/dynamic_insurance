@@ -66,18 +66,19 @@ void WorldEconomy::simulateOnePeriod(double r)
 	history[currentPeriod][numCountries] = curSt;
 	if (currentPeriod > 0) {
 		history[currentPeriod-1][numCountries + 1] = r;
+		history[currentPeriod][numCountries + 1] = 1;
 	}
 	double netBonds = 0;
 	for (int i = 0; i < numCountries; i++){
 		e[i]->simulateOnePeriod(curSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets());
 		history[currentPeriod][i] = e[i]->getAverageAssets();
-		if (history[currentPeriod][i] < MIN_AGG_ASSETS) {
+		if (history[currentPeriod][i] < MIN_AGG_ASSETS/100) {
 			std::cerr << "WorldEconomy.cpp-simulateOnePeriod(): AggAssets=" << history[currentPeriod][i] << ". Must be >= " << MIN_AGG_ASSETS << std::endl;
 			exit(-1);
 		}
 		netBonds += e[i]->getAverage(BSTATE);
 	}
-	std::cout << "Period " << currentPeriod << " , Net Bonds: " << netBonds << " , r: " << r << std::endl;
+	std::cout << "Period " << currentPeriod << " , A1: " << history[currentPeriod][0] << ", A2: " << history[currentPeriod][1] << ", Net Bonds: " << netBonds << " , r: " << r << std::endl;
 	currentPeriod += 1;
 }
 

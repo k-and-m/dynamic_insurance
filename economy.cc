@@ -51,7 +51,7 @@ double Economy::getAverageTest(unsigned int asset) const{
 double Economy::getAverageAssets(){
 	double total = 0;
 	for (unsigned int i = 0; i < econSize; i++){
-		total += (myHHs[i]->getCurrentState(ASTATE)- myHHs[i]->getCurrentAsset(BSTATE));
+		total += myHHs[i]->getCurrentState(ASTATE);
 	}
 	return total / econSize;
 }

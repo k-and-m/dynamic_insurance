@@ -83,10 +83,10 @@ Household::~Household(){
 void Household::setInitialState(const State& p_currentState) {
 	oldState = p_currentState;
 	currentState = p_currentState;
-	currentAssetDist[K1STATE] = MIN_CAPITAL;
-	currentAssetDist[K2STATE] = MIN_CAPITAL;
-	//currentAssetDist[MGMT_C1_STATE] = 1;
-	currentAssetDist[BSTATE] = p_currentState.current_states[ASTATE] - 2 * MIN_CAPITAL;
+
+	currentAssetDist[K1STATE] = p_currentState.current_states[ASTATE] / (3 * NOMINAL_PRICE * p_currentState.getTau());
+	currentAssetDist[K2STATE] = p_currentState.current_states[ASTATE] / (3 * NOMINAL_PRICE);
+	currentAssetDist[BSTATE] = p_currentState.current_states[ASTATE] / 3;
 
 	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
 	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];
@@ -97,12 +97,12 @@ void Household::setInitialState(const State& p_currentState) {
 void Household::setRandomInitialState(const State& p_currentState) {
 	oldState = p_currentState;
 	currentState = p_currentState;
-	currentAssetDist[K1STATE] = MIN_CAPITAL;
-	currentAssetDist[K2STATE] = MIN_CAPITAL;
 	double randNum = distr(gener);
 	currentState.current_indices[ASTATE] = floor(randNum*ASSET_SIZE);
 	currentState.current_states[ASTATE] = s_proc->assets[currentState.current_indices[ASTATE]];
-	currentAssetDist[BSTATE] = currentState.current_states[ASTATE] - 2 * MIN_CAPITAL;
+	currentAssetDist[K1STATE] = currentState.current_states[ASTATE] / (3*NOMINAL_PRICE*p_currentState.getTau());
+	currentAssetDist[K2STATE] = currentState.current_states[ASTATE] / (3*NOMINAL_PRICE);
+	currentAssetDist[BSTATE] = currentState.current_states[ASTATE] / 3;
 
 	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
 	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];

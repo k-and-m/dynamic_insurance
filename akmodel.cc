@@ -108,16 +108,11 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		exit(-1);
 	}
 
-
-	EquilFns orig1, final1;
-	EquilFns orig2, final2;
-
-	double avgDist = 1;
 	Mat3Doub recursEst(NUM_RECURSIVE_FNS, PHI_STATES, 3);
 	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < PHI_STATES; j++) {
 			if (i == P_R) {
-				recursEst[i][j][0] = 0.013;
+				recursEst[i][j][0] = 0.029;
 				recursEst[i][j][1] = 0;
 				recursEst[i][j][2] = 0;
 			}
@@ -129,7 +124,11 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		}
 	}
 
+	double avgDist = 1;
 	for (int loopC = 0; (loopC < 20) && (avgDist>0.01); loopC++) {
+		EquilFns orig1, final1;
+		EquilFns orig2, final2;
+
 		VecDoub myphis = VecDoub(PHI_STATES);
 		for (int i = 0; i < PHI_STATES; i++) {
 			myphis[i] = phis[i];

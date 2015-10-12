@@ -81,7 +81,7 @@ double State::getTau() const{
 
 void State::defaultInitialState(StochProc& stoch2){
 
-	 current_states[ASTATE] = stoch2.assets[ASSET_SIZE / 4];
+	 current_states[ASTATE] = stoch2.assets[ASSET_SIZE / 2];
 	 current_states[CAP1_SHOCK_STATE] =
 		stoch2.shocks[0][0][0][0][0][EF_K1];
 	 current_states[CAP2_SHOCK_STATE] =
@@ -95,7 +95,7 @@ void State::defaultInitialState(StochProc& stoch2){
 	 current_states[AGG_ASSET_STATE] = stoch2.aggAssets[AGG_ASSET_SIZE / 2];
 	 current_states[AGG2_ASSET_STATE] = stoch2.aggAssets[AGG_ASSET_SIZE / 2];
 
-	 current_indices[ASTATE] = ASSET_SIZE / 4;
+	 current_indices[ASTATE] = ASSET_SIZE / 2;
 	 current_indices[CAP1_SHOCK_STATE] = 0;
 	 current_indices[CAP2_SHOCK_STATE] = 0;
 	 current_indices[WAGE_SHOCK_STATE] = 0;
