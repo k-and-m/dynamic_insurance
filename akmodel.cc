@@ -398,7 +398,7 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 	out_stream.open(os.str());
 
 	out_stream
-		<< "aggAsset,aggAsset2,phi,agg_shock,z1,z2,wage_shock,a,value_fn,consumption,k1_prime,k2_prime,b_prime,c1mgmt"
+		<< "aggAsset,aggAsset2,phi,agg_shock,z1,z2,wage_shock,a,value_fn,consumption,k1_prime,k2_prime,b_prime"
 		<< endl;
 
 	VecInt index(8);

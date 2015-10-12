@@ -59,7 +59,7 @@
 #define MINIMIZATION_TOL pow(10,-8)
 #define VAL_TOL 3*pow(10,-4)
 #define THETA 1
-#define ALPHA1 0.75
+#define ALPHA1 0.25
 #define BETA 0.925
 #define MAX_ITER 100
 
