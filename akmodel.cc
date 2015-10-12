@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 	phi[2] = 0;
 	phi[3] = 0;
 
-	tau[0] = 4.0;
+	tau[0] = 1.1;
 	double dis = solveProblem(phi, tau, 0.3, 0);
 #endif
 	std::cout << "soln dist: " << dis << endl;
@@ -117,7 +117,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < PHI_STATES; j++) {
 			if (i == P_R) {
-				recursEst[i][j][0] = 0.03;
+				recursEst[i][j][0] = 0;
 				recursEst[i][j][1] = 0;
 				recursEst[i][j][2] = 0;
 			}
@@ -220,7 +220,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	badLHS[AGG_ASSET_C1] = data[0].middleCols(numC + 1, 1);
 	badLHS[AGG_ASSET_C2] = data[0].middleCols(numC + 2, 1);
 	badLHS[P_R] = data[0].middleCols(numC + 3, 1);
-	for (int i = 1; i < NUM_RECURSIVE_FNS; i++) {
+	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < badLHS[i].rows(); j++) {
 			badLHS[i][j] = log(badLHS[i][j]);
 		}
@@ -237,7 +237,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	goodLHS[AGG_ASSET_C1] = data[1].middleCols(numC + 1, 1);
 	goodLHS[AGG_ASSET_C2] = data[1].middleCols(numC + 2, 1);
 	goodLHS[P_R] = data[1].middleCols(numC + 3, 1);
-	for (int i = 1; i < NUM_RECURSIVE_FNS; i++) {
+	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < goodLHS[i].rows(); j++) {
 			goodLHS[i][j] = log(goodLHS[i][j]);
 		}

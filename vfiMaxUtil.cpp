@@ -14,7 +14,7 @@ double vfiMaxUtil::calculateCurrentAssets(const double k1, const double k2, cons
 	int curAgg = curSt->current_indices[AGG_SHOCK_STATE];
 	int curPhi = curSt->current_indices[PHI_STATE];
 
-	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2) + (1 + r) * bonds
+	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2) + (r) * bonds
 		+ prod_fn(k1, k2, /*mgmtprime,*/ *curSt, curStoch);
 
 	if (nextAssets != nextAssets) {
@@ -38,7 +38,7 @@ double vfiMaxUtil::calculateTestAssets(const double k1, const double k2, const d
 	int curAgg = curSt->current_indices[AGG_SHOCK_STATE];
 	int curPhi = curSt->current_indices[PHI_STATE];
 
-	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2) + (1 + r) * bonds
+	double nextAssets = get_wage(*curSt, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2) + (r) * bonds
 		+ prod_fn(k1, k2, /*mgmtprime,*/ *curSt, curStoch);
 
 	if (nextAssets != nextAssets) {
@@ -164,7 +164,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 
 						double aprime = get_wage(newState, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1prime)
 							+ (NOMINAL_PRICE * k2prime)
-							+ (1 + curSt->getRecursiveVal(P_R)) * bprime
+							+ (curSt->getRecursiveVal(P_R)) * bprime
 							+ prod_fn(k1prime, k2prime, /*c1mgmt,*/ newState, curStoch);
 
 						if (aprime != aprime) {
@@ -361,7 +361,7 @@ double vfiMaxUtil::getMaxBorrow(const double k1, const double k2/*, const double
 	}
 #endif
 	double x = get_wage(newState, curStoch) + (newState.getTau() * k1) + (k2)+prod_fn(k1, k2, /*c1mgmt,*/ newState, curStoch);
-	return MAX(MIN_BONDS, MIN_ASSETS - x) / (1 + curSt->getRecursiveVal(P_R));
+	return MAX(MIN_BONDS, MIN_ASSETS - x) / (curSt->getRecursiveVal(P_R));
 }
 
 bool vfiMaxUtil::constraintBinds() const {
