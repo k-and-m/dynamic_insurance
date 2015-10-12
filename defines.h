@@ -61,7 +61,7 @@
 #define THETA 1
 #define ALPHA1 0.75
 #define BETA 0.925
-#define MAX_ITER 75
+#define MAX_ITER 100
 
 //Definitions for state.current_states, which is a VecDoub of five dimensions.
 //Also, first two dimensions work for EquilFns.policy_fn.
@@ -102,8 +102,8 @@
 #endif
 
 //definitions for Krusell-Smith economy simulation
-#define SSPERIODS 2500
-#define NUMPERIODS 1500
+#define SSPERIODS 100
+#define NUMPERIODS 100
 #define TOTALPERIODS SSPERIODS+NUMPERIODS
 #define NUMHHS 10000
 

@@ -117,7 +117,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < PHI_STATES; j++) {
 			if (i == P_R) {
-				recursEst[i][j][0] = 0;
+				recursEst[i][j][0] = 0.013;
 				recursEst[i][j][1] = 0;
 				recursEst[i][j][2] = 0;
 			}

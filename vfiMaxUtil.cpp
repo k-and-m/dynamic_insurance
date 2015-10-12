@@ -360,7 +360,7 @@ double vfiMaxUtil::getMaxBorrow(const double k1, const double k2/*, const double
 		exit(-1);
 	}
 #endif
-	double x = get_wage(newState, curStoch) + (newState.getTau() * k1) + (k2)+prod_fn(k1, k2, /*c1mgmt,*/ newState, curStoch);
+	double x = get_wage(newState, curStoch) + (newState.getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2)+prod_fn(k1, k2, /*c1mgmt,*/ newState, curStoch);
 	return MAX(MIN_BONDS, MIN_ASSETS - x) / (curSt->getRecursiveVal(P_R));
 }
 
