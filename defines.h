@@ -13,7 +13,7 @@
 #define AGG_SHOCK_SIZE 1
 
 #define AGG_ASSET_SIZE 5
-#define MAX_AGG_ASSETS 10
+#define MAX_AGG_ASSETS 6
 #define MIN_AGG_ASSETS 1 
 
 #define PHI_STATES 2

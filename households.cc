@@ -84,9 +84,9 @@ void Household::setInitialState(const State& p_currentState) {
 	oldState = p_currentState;
 	currentState = p_currentState;
 
-	currentAssetDist[K1STATE] = p_currentState.current_states[ASTATE] / (3 * NOMINAL_PRICE * p_currentState.getTau());
-	currentAssetDist[K2STATE] = p_currentState.current_states[ASTATE] / (3 * NOMINAL_PRICE);
-	currentAssetDist[BSTATE] = p_currentState.current_states[ASTATE] / 3;
+	currentAssetDist[K1STATE] = p_currentState.current_states[ASTATE] / (4 * NOMINAL_PRICE * p_currentState.getTau());
+	currentAssetDist[K2STATE] = p_currentState.current_states[ASTATE] / (4 * NOMINAL_PRICE);
+	currentAssetDist[BSTATE] = p_currentState.current_states[ASTATE] / 4;
 
 	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
 	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];
@@ -100,9 +100,9 @@ void Household::setRandomInitialState(const State& p_currentState) {
 	double randNum = distr(gener);
 	currentState.current_indices[ASTATE] = floor(randNum*ASSET_SIZE);
 	currentState.current_states[ASTATE] = s_proc->assets[currentState.current_indices[ASTATE]];
-	currentAssetDist[K1STATE] = currentState.current_states[ASTATE] / (3*NOMINAL_PRICE*p_currentState.getTau());
-	currentAssetDist[K2STATE] = currentState.current_states[ASTATE] / (3*NOMINAL_PRICE);
-	currentAssetDist[BSTATE] = currentState.current_states[ASTATE] / 3;
+	currentAssetDist[K1STATE] = currentState.current_states[ASTATE] / (4*NOMINAL_PRICE*p_currentState.getTau());
+	currentAssetDist[K2STATE] = currentState.current_states[ASTATE] / (4*NOMINAL_PRICE);
+	currentAssetDist[BSTATE] = currentState.current_states[ASTATE] / 4;
 
 	oldAssetDist[K1STATE] = currentAssetDist[K1STATE];
 	oldAssetDist[K2STATE] = currentAssetDist[K2STATE];
@@ -207,7 +207,7 @@ void Household::iterate(int newAggState, int newPhiState, double r, const double
 #else
 	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
-	double k2prime = k1prime * pow(oldState.getTau(), 1 - ALPHA1);
+	double k2prime = k1prime * pow(oldState.getTau(), 1/(1 - ALPHA1));
 	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE-1]).begin(),
 		currentState.current_states[AGG_ASSET_STATE], currentState.current_states[AGG2_ASSET_STATE], currentState.current_states[ASTATE]);
 #endif
@@ -307,7 +307,7 @@ void Household::test(int newAggState, int newPhiState, double r, const double ag
 #else
 	double k1prime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][K1STATE]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
-	double k2prime = k1prime * pow(oldState.getTau(), 1 - ALPHA1);
+	double k2prime = k1prime * pow(oldState.getTau(), 1/(1 - ALPHA1));
 	double bprime = utilityFunctions::interpolate3d(s_proc->aggAssets, s_proc->aggAssets, s_proc->assets, (getReformPolicyFn()[curSt[EF_PHI]][curSt[EF_A]][curSt[EF_K1]][curSt[EF_K2]][curSt[EF_W]][BSTATE-1]).begin(),
 		localCurrentState.current_states[AGG_ASSET_STATE], localCurrentState.current_states[AGG2_ASSET_STATE], localCurrentState.current_states[ASTATE]);
 #endif

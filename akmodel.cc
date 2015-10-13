@@ -31,6 +31,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target,
 	VecDoub& r_squared);
 void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry);
+void readResults(EquilFns& e, COUNTRYID whichCountry);
 void initialize(EquilFns& fns, const VecDoub& phis);
 void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst);
 int policy_iteration(double difference, State& initial, const StochProc& stoch,
@@ -111,15 +112,26 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 	Mat3Doub recursEst(NUM_RECURSIVE_FNS, PHI_STATES, 3);
 	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < PHI_STATES; j++) {
-			if (i == P_R) {
-				recursEst[i][j][0] = 0.029;
+			switch (i) {
+			case P_R:
+				recursEst[i][j][0] = 0.004;
 				recursEst[i][j][1] = 0;
 				recursEst[i][j][2] = 0;
-			}
-			else {
+				break;
+			case AGG_ASSET_C1:
 				recursEst[i][j][0] = 0;
 				recursEst[i][j][1] = 1;
 				recursEst[i][j][2] = 0;
+				break;
+			case AGG_ASSET_C2:
+				recursEst[i][j][0] = 0;
+				recursEst[i][j][1] = 0;
+				recursEst[i][j][2] = 1;
+				break;
+			default:
+				std::cerr << "ERROR! Unknown recursive function: " << i << std::endl;
+				exit(-1);
+				break;
 			}
 		}
 	}
@@ -389,12 +401,35 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 	os << "policy_" << whichCountry << ".dat";
 
 	StochProc stoch(phis);
-	std::cout << phis[0] << std::endl;
-	std::cout << phis[1] << std::endl;
-	std::cout << stoch.shocks[0][0][0][0][0][EF_PHI] << std::endl;
-	std::cout << stoch.shocks[1][0][0][0][0][EF_PHI] << std::endl;
 
 	out_stream.open(os.str());
+
+	for (int i = 0; i < PHI_STATES; i++) {
+		if (i == (PHI_STATES - 1)) {
+			out_stream << phis[i] << std::endl;
+		}
+		else {
+			out_stream << phis[i] << ",";
+		}
+	}
+
+	for (int i = 0; i < CAP_SHOCK_SIZE; i++) {
+		if (i == (CAP_SHOCK_SIZE - 1)) {
+			out_stream << stoch.shocks[0][0][0][0][0][EF_K1] << std::endl;
+		}
+		else {
+			out_stream << stoch.shocks[0][0][0][0][0][EF_K1] << ",";
+		}
+	}
+
+	for (int i = 0; i < WAGE_SHOCK_SIZE; i++) {
+		if (i == (WAGE_SHOCK_SIZE - 1)) {
+			out_stream << stoch.shocks[0][0][0][0][0][EF_W] << std::endl;
+		}
+		else {
+			out_stream << stoch.shocks[0][0][0][0][0][EF_W] << ",";
+		}
+	}
 
 	out_stream
 		<< "aggAsset,aggAsset2,phi,agg_shock,z1,z2,wage_shock,a,value_fn,consumption,k1_prime,k2_prime,b_prime"
@@ -431,8 +466,7 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 										<< e.consumption[f][g][h][i][j][l][ll][m] << ","
 										<< e.policy_fn[f][g][h][i][j][l][ll][m][K1STATE] << ","
 										<< e.policy_fn[f][g][h][i][j][l][ll][m][K2STATE] << ","
-										<< e.policy_fn[f][g][h][i][j][l][ll][m][BSTATE] //<< ","
-										//						<< e.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE]
+										<< e.policy_fn[f][g][h][i][j][l][ll][m][BSTATE] 
 										<< endl;
 								}
 							}
@@ -444,6 +478,145 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 	}
 	out_stream.close();
 }
+
+void readResults(EquilFns& e, COUNTRYID whichCountry) {
+	using namespace std;
+
+	ostringstream os;
+	os << "policy_" << whichCountry << ".dat";
+
+	std::vector< char > data(os.str().begin(), os.str().end());
+	char *c_str = &(data[0]);
+	FILE *fp = std::fopen(c_str, "r");
+
+	int a1, a2, aggShock;
+	double phi, z1, z2, wage, a, valuefn, cons, k1p, k2p, bp;
+	double phi1, phi2;
+
+	if (PHI_STATES != 2) {
+		std::cerr << " ERROR! akmodel.cc-readResults(): only expect two phi states, not " << PHI_STATES << std::endl;
+		std::fclose(fp);
+		exit(-1);
+	}
+
+	VecDoub vphis(PHI_STATES);
+	if (fscanf(fp, "%lf, %lf", &phi1, &phi2) != PHI_STATES) {
+		std::cerr << "ERROR! akmodel.cc:readResults() - unable to read phis." << std::endl;
+		std::fclose(fp);
+		exit(-1);
+	}
+	vphis[0] = phi1;
+	vphis[1] = phi2;
+	StochProc stoch(vphis);
+
+	if (CAP_SHOCK_SIZE != 2) {
+		std::cerr << " ERROR! akmodel.cc-readResults(): only expect two capital states, not " << CAP_SHOCK_SIZE << std::endl;
+		std::fclose(fp);
+		exit(-1);
+	}
+
+	VecDoub vzs(CAP_SHOCK_SIZE);
+	if (fscanf(fp, "%lf, %lf", &z1, &z2) != CAP_SHOCK_SIZE) {
+		std::cerr << "ERROR! akmodel.cc:readResults() - unable to read z's." << std::endl;
+		std::fclose(fp);
+		exit(-1);
+	}
+	vzs[0] = z1;
+	vzs[1] = z2;
+
+	VecDoub vws(WAGE_SHOCK_SIZE);
+	if (fscanf(fp, "%lf, %lf", &z1, &z2) != WAGE_SHOCK_SIZE) {
+		std::cerr << "ERROR! akmodel.cc:readResults() - unable to read w's." << std::endl;
+		std::fclose(fp);
+		exit(-1);
+	}
+	vws[0] = z1;
+	vws[1] = z2;
+
+	while (fscanf(fp, "%d, %d, %lf, %d, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf", 
+				       &a1,&a2,&phi,&aggShock,&z1,&z2,&wage,&a,&valuefn,&cons,&k1p,&k2p,&bp) == 13) {
+
+		std::vector<double>::iterator it;
+		VecInt index(8);
+		index[0] = a1;
+		index[1] = a2;
+
+		it = std::find(vphis.begin(), vphis.end(), phi);
+		if (it != vphis.end()) {
+			index[2] = std::distance(vphis.begin(), it);
+		}
+		else {
+			if (phi != *it) {
+				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find phi=" << phi << std::endl;
+				fclose(fp);
+				exit(-1);
+			}
+			index[2] = PHI_STATES - 1;
+		}
+
+		index[3] = aggShock;
+
+		it = std::find(stoch.aggAssets.begin(), stoch.aggAssets.end(), a);
+		if (it != stoch.aggAssets.end()) {
+			index[4] = std::distance(stoch.aggAssets.begin(), it);
+		}
+		else {
+			if (a != *it) {
+				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find a=" << a << std::endl;
+				std::fclose(fp);
+				exit(-1);
+			}
+			index[4] = ASSET_SIZE - 1;
+		}
+
+		it = std::find(vzs.begin(), vzs.end(), z1);
+		if (it != vzs.end()) {
+			index[5] = std::distance(vzs.begin(), it);
+		}
+		else {
+			if (z1 != *it) {
+				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find z1=" << z1 << std::endl;
+				std::fclose(fp);
+				exit(-1);
+			}
+			index[5] = CAP_SHOCK_SIZE - 1;
+		}
+
+		it = std::find(vzs.begin(), vzs.end(), z2);
+		if (it != vzs.end()) {
+			index[6] = std::distance(vzs.begin(), it);
+		}
+		else {
+			if (z2 != *it) {
+				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find z2=" << z2 << std::endl;
+				std::fclose(fp);
+				exit(-1);
+			}
+			index[6] = CAP_SHOCK_SIZE - 1;
+		}
+
+		it = std::find(vws.begin(), vws.end(), wage);
+		if (it != vws.end()) {
+			index[7] = std::distance(vws.begin(), it);
+		}
+		else {
+			if (wage != *it) {
+				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find w=" << wage << std::endl;
+				std::fclose(fp);
+				exit(-1);
+			}
+			index[7] = WAGE_SHOCK_SIZE - 1;
+		}
+
+		e.setValueFn(index, valuefn);
+		e.consumption[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]]=cons;
+		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = k1p;
+		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = k2p;
+		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = bp;
+	}
+	fclose(fp);
+}
+
 
 void initialize(EquilFns& fns, const VecDoub& phis) {
 
