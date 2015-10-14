@@ -202,7 +202,16 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		}
 		avgDist = avgDist / NUM_RECURSIVE_FNS;
 
-		recursEst = xres;
+		recursEst *= 0.7;
+		xres *= 0.3;
+
+		for (int dim1 = 0; dim1 < xres.dim1(); dim1++) {
+			for (int dim2 = 0; dim2 < xres.dim2(); dim2++) {
+				for (int dim3 = 0; dim3 < xres.dim3(); dim3++) {
+					recursEst[dim1][dim2][dim3] += xres[dim1][dim2][dim3];
+				}
+			}
+		}
 	}
 
 	ostringstream os;
