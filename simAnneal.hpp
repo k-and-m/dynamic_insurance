@@ -15,6 +15,7 @@
 #include <cstddef>
 
 #include "typedefs.h"
+#include "brent.hpp"
 
 /***********************************************************************************************//**
 
@@ -170,7 +171,7 @@ protected:
 
 	const Target* TARGET;
 	const double PRECISION;
-	const double ALPHA = 0.9;
+	const double ALPHA = 0.95;
 
 	Solution* solution;
 	Solution* best;
@@ -250,53 +251,63 @@ bool SimulatedAnnealing<Solution, Target>::accept(const Solution& oldSolution,
 template<class Solution, class Target>
 Solution* SimulatedAnnealing<Solution, Target>::solve() {
 
-	printStatus(*solution, temp);
+	//printStatus(*solution, temp);
 	long int counter = 0;
 	while (!shouldStop(*solution)) {
-//		std::cout<<counter++<<std::endl<<std::flush;
+		//std::cout<<counter++<<std::endl<<std::flush;
 		Solution *solPtr = solution;
+		//std::cout << "GET NEIGHBOR" << std::endl << std::flush;
 		Solution* newSolution = giveRandomNeighbour(*solution);
+		//std::cout << "CHECK SOLUTION" << std::endl << std::flush;
 		if (accept(*solution, *newSolution, temp)) {
 			solution = newSolution;
-//			std::cout << "ACCEPTED" << std::endl<<std::flush;
+			//std::cout << "ACCEPTED" << std::endl<<std::flush;
 		} else {
-//			std::cout << "REJECTED" << std::endl<<std::flush;
+			//std::cout << "REJECTED" << std::endl<<std::flush;
 			delete newSolution;
+			continue;
 		}
-//		std::cout << "energy(solution)" << std::endl<<std::flush;
-		double newEn = -getEnergy(*solution);
-//		std::cout << "energy(best)" << std::endl<<std::flush;
-		double bestEn = -getEnergy(*best);
-		if (newEn > bestEn) {
+		//std::cout << "energy(solution)" << std::endl<<std::flush;
+		double newEn = calcDistanceToTarget(*solution);
+		//std::cout << "energy(best)" << std::endl<<std::flush;
+		double bestEn = calcDistanceToTarget(*best);
+		if (newEn < bestEn) {
 			if (solPtr == best) {
-//				std::cout << "delete solPtr" << std::endl<<std::flush;
+				//std::cout << "delete solPtr" << std::endl<<std::flush;
 				delete solPtr;
 			} else {
-//				std::cout << "delete solPtr2" << std::endl<<std::flush;
+				//std::cout << "delete solPtr2" << std::endl<<std::flush;
 				delete solPtr;
-//				std::cout << "delete best" << std::endl<<std::flush;
+				//std::cout << "delete best" << std::endl<<std::flush;
 				delete best;
 			}
 			best = solution;
+			std::cout << "simAnneal.hpp-solve(): " << counter++ << ":" << (*solution)[0] << ":" << newEn << std::endl;
 		} else {
 			if ((solPtr != best) && (solPtr != solution)) {
-//				std::cout << "delete solPtr3" << std::endl<<std::flush;
+				//std::cout << "delete solPtr3" << std::endl<<std::flush;
 				delete solPtr;
 			} else {
-//				std::cout << "don't delete solPtr3" << std::endl<<std::flush;
+				//std::cout << "don't delete solPtr3" << std::endl<<std::flush;
 			}
 		}
-//		std::cout << "pointer deletion done?" << std::endl<<std::flush;
+		//std::cout << "pointer deletion done?" << std::endl<<std::flush;
 
-		//std::cout << "\n*****************\n" << std::endl;
-		printStatus(*solution, temp);
+		//std::cout << "\n*****************\n" << std::endl << std::flush;
+		if (solution == NULL) {
+			std::cout << "ERROR! simAnneal.hpp-solve(): Solution disappeared!" << std::endl << std::flush;
+			exit(-1);
+		}
+		//printStatus(*solution, temp);
 		temp = calcNewTemp(temp);
+		//std::cout << "NEW TEMP " << temp << std::endl << std::flush;
 		assert(temp >= 0); // only positive temperatures are allowed!
+		//std::cout << "ASSERT COMPLETE." << std::endl << std::flush;
 	}
-//	std::cout << "\n\n\n*************************************************************\n\n"
-//		<< "We're done, Solution: \n\n" << *solution << "\n\n*************************************************************\n" << std::endl;
+	//std::cout << "\n\n\n*************************************************************\n\n"
+		//<< "We're done, Solution: \n\n" << (*solution)[0] << "\n\n*************************************************************\n" << std::endl;
 
-//	std::cout<<"in solve"<<(best==solution)<<std::endl<<std::flush;
+	//std::cout<<"in solve"<<(best==solution)<<std::endl<<std::flush;
 
 	if (solution != best) {
 		delete solution;
@@ -318,7 +329,7 @@ bool SimulatedAnnealing<Solution, Target>::shouldStopHook(
 template<class Solution, class Target>
 void SimulatedAnnealing<Solution, Target>::printStatus(const Solution& solution,
 		double temp) {
-//	std::cout << "Current solution: " << solution << " at Temp: " << temp << std::endl;
+	std::cout << "Current solution: " << solution[0] << " at Temp: " << temp << std::endl << std::flush;
 }
 
 template<class Solution, class Target>
@@ -335,84 +346,5 @@ template<class Solution, class Target>
 SimulatedAnnealing<Solution, Target>::~SimulatedAnnealing() {
 }
 
-class SimulatedAnnealingWorld: public SimulatedAnnealing<VecDoub, double> {
-public:
-
-//      void printStatus(double solution, double temp);
-	VecDoub* giveRandomNeighbour(const VecDoub& lastSolution) const;
-
-	double calcDistanceToTarget(const VecDoub& solution) const;
-
-	bool shouldStopHook(const VecDoub& solution);
-
-	SimulatedAnnealingWorld(const VecDoub& startSolution, const double& target,
-			double starttemp, double precision, double (*function)(double,double,double,double,double,double),
-                        double p_maxstep, double p_phi1, double p_phi2, double p_prop);
-
-	~SimulatedAnnealingWorld() {
-	}
-	;
-
-	double getEnergy(const VecDoub& lastSolution) const {
-		return (*func)(phi1,phi2,lastSolution[0],lastSolution[1],lastSolution[2],prop);
-	}
-	;
-
-private:
-	double unifRand() const {
-		return rand() / double(RAND_MAX);
-	}
-	;
-
-	double unifRand(double a, double b) const {
-		double x;
-		x = (b - a) * unifRand() + a;
-		return x;
-	}
-	;
-
-	double (*func)(double,double,double,double,double,double);
-        const double maxstep;
-        const double phi1;
-        const double phi2;
-        const double prop;
-};
-
-VecDoub* SimulatedAnnealingWorld::giveRandomNeighbour(
-		const VecDoub& lastPoint) const {
-	VecDoub *newPoint = new VecDoub;
-	*newPoint = lastPoint;
-	for (unsigned int i = 0; i < lastPoint.size(); i++) {
-		(*newPoint)[i] = lastPoint[i] + unifRand(-maxstep, maxstep);
-	}
-	return newPoint;
-}
-
-double SimulatedAnnealingWorld::calcDistanceToTarget(
-		const VecDoub& angle) const {
-	static long int count = 0;
-	count += 1;
-	double distance = -getEnergy(angle) - *TARGET;
-	if (distance > 0) {
-		return distance;
-	} else {
-		return (-distance);
-	}
-}
-
-bool SimulatedAnnealingWorld::shouldStopHook(const VecDoub& solution) {
-	return temp < MINIMIZATION_TOL;
-}
-
-SimulatedAnnealingWorld::SimulatedAnnealingWorld(const VecDoub& startSolution,
-					const double& target, double starttemp, double precision, 
-                			double (*function)(double,double,double,double,double,double),
-                                        double p_maxstep, double p_phi1, double p_phi2, double p_prop) :
-		SimulatedAnnealing<VecDoub,double>(startSolution, target, starttemp, precision),maxstep(p_maxstep),
-                phi1(p_phi1),phi2(p_phi2),prop(p_prop) {
-		static long int seed = 1;
-	        srand(seed++);
-		func = function;
-}
 
 #endif /* SIMANNEAL_HPP_ */

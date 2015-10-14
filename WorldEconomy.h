@@ -5,6 +5,8 @@
 #include "BaseHeader.h"
 #include "economy.hpp"
 #include "brent.hpp"
+#include "SimulatedAnnealingWorld.h"
+
 #include <random>
 using namespace std;
 using namespace brent;

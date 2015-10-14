@@ -19,8 +19,10 @@
 #include "vfiMaxUtil.h"
 #include <Eigen/Dense>
 
+#if 0
 #if SIMULATED_ANNEALING
 #include "simAnneal.hpp"
+#endif
 #endif
 
 using namespace Eigen;
@@ -42,9 +44,12 @@ double maxPolicyDistance(const EquilFns &a, const EquilFns &b,
 double solveProblem(const VecDoub& phis, const VecDoub& prices, double c1prop, int seqNo);
 
 #if 1
+bool readPolicy = true;
+
 int main(int argc, char *argv[]) {
 	using namespace std;
 
+//	readPolicy = (argc==2);
 	if (argc != 7) {
 		std::cout << "Incorrect number of arguments. Require: c1phiL c1phiH c2phiL c2phiH tau seqNo" << endl;
 		//				exit(-1);
@@ -145,35 +150,46 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		for (int i = 0; i < PHI_STATES; i++) {
 			myphis[i] = phis[i];
 		}
-
-		initialize(orig1, myphis);
-		std::cout << "Solving Country 1" << std::endl;
-		solve(myphis, tau, orig1, final1, recursEst);
-#if 1
-		printResults(final1, myphis, C1);
-#else
-		std::cout << "Skipping printing" << std::endl;
-#endif
-		State current1(myphis, tau, recursEst);
 		StochProc stoch1(myphis);
+		State current1(myphis, tau, recursEst);
 		current1.defaultInitialState(stoch1);
+		initialize(orig1, myphis);
+
+		if ((loopC > 0) || (readPolicy == false)) {
+			std::cout << "Solving Country 1" << std::endl;
+			solve(myphis, tau, orig1, final1, recursEst);
+#if 1
+			printResults(final1, myphis, C1);
+#else
+			std::cout << "Skipping printing" << std::endl;
+#endif
+		}
+		else {
+			std::cout << "Reading Country 1" << std::endl << std::flush;
+			readResults(final1, C1);
+		}
 
 		for (int i = PHI_STATES; i < 2 * PHI_STATES; i++) {
 			myphis[i - PHI_STATES] = phis[i];
 		}
-
-		initialize(orig2, myphis);
-		std::cout << "Solving Country 2" << std::endl;
-		solve(myphis, tau, orig2, final2, recursEst);
-#if 1
-		printResults(final2, myphis, C2);
-#else
-		std::cout << "Skipping printing" << std::endl;
-#endif
-
-		State current2(myphis, tau, recursEst);
 		StochProc stoch2(myphis);
+		State current2(myphis, tau, recursEst);
 		current2.defaultInitialState(stoch2);
+		initialize(orig2, myphis);
+
+		if ((loopC > 0) || (readPolicy == false)) {
+			std::cout << "Solving Country 2" << std::endl;
+			solve(myphis, tau, orig2, final2, recursEst);
+#if 1
+			printResults(final2, myphis, C2);
+#else
+			std::cout << "Skipping printing" << std::endl;
+#endif
+		}
+		else {
+			std::cout << "Reading Country 2" << std::endl << std::flush;
+			readResults(final2, C2);
+		}
 
 		std::cout << "Simulating world economies. " << NUMHHS << " households over " << TOTALPERIODS << " periods." << std::endl;
 
@@ -415,19 +431,19 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 
 	for (int i = 0; i < CAP_SHOCK_SIZE; i++) {
 		if (i == (CAP_SHOCK_SIZE - 1)) {
-			out_stream << stoch.shocks[0][0][0][0][0][EF_K1] << std::endl;
+			out_stream << stoch.shocks[0][0][i][0][0][EF_K1] << std::endl;
 		}
 		else {
-			out_stream << stoch.shocks[0][0][0][0][0][EF_K1] << ",";
+			out_stream << stoch.shocks[0][0][i][0][0][EF_K1] << ",";
 		}
 	}
 
 	for (int i = 0; i < WAGE_SHOCK_SIZE; i++) {
 		if (i == (WAGE_SHOCK_SIZE - 1)) {
-			out_stream << stoch.shocks[0][0][0][0][0][EF_W] << std::endl;
+			out_stream << stoch.shocks[0][0][0][0][i][EF_W] << std::endl;
 		}
 		else {
-			out_stream << stoch.shocks[0][0][0][0][0][EF_W] << ",";
+			out_stream << stoch.shocks[0][0][0][0][i][EF_W] << ",";
 		}
 	}
 
@@ -438,8 +454,8 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 	VecInt index(8);
 
 	for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
-		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
-			for (int f = 0; f < AGG_ASSET_SIZE; f++) {
+		for (int f = 0; f < AGG_ASSET_SIZE; f++) {
+			for (int g = 0; g < AGG_ASSET_SIZE; g++) {
 				for (int j = 0; j < ASSET_SIZE; j++) {
 					for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
 						for (int ll = 0; ll < CAP_SHOCK_SIZE; ll++) {
@@ -453,6 +469,23 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 									index[5] = l;
 									index[6] = ll;
 									index[7] = m;
+#if 1
+									out_stream
+										<< f << ","
+										<< g << ","
+										<< h << ","
+										<< i << ","
+										<< l << ","
+										<< ll << ","
+										<< m << ","
+										<< j << ","
+										<< e.getValueFn(index) << ","
+										<< e.consumption[f][g][h][i][j][l][ll][m] << ","
+										<< e.policy_fn[f][g][h][i][j][l][ll][m][K1STATE] << ","
+										<< e.policy_fn[f][g][h][i][j][l][ll][m][K2STATE] << ","
+										<< e.policy_fn[f][g][h][i][j][l][ll][m][BSTATE]
+										<< endl;
+#else
 									out_stream
 										<< stoch.aggAssets[g] << ","
 										<< stoch.aggAssets[f] << ","
@@ -468,6 +501,7 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 										<< e.policy_fn[f][g][h][i][j][l][ll][m][K2STATE] << ","
 										<< e.policy_fn[f][g][h][i][j][l][ll][m][BSTATE] 
 										<< endl;
+#endif
 								}
 							}
 						}
@@ -482,15 +516,23 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 void readResults(EquilFns& e, COUNTRYID whichCountry) {
 	using namespace std;
 
+#if 0
 	ostringstream os;
 	os << "policy_" << whichCountry << ".dat";
-
 	std::vector< char > data(os.str().begin(), os.str().end());
 	char *c_str = &(data[0]);
 	FILE *fp = std::fopen(c_str, "r");
+#else
+	FILE *fp = NULL;
+	if (whichCountry == C1) {
+		fp = std::fopen("policy_0.dat", "r");
+	}else{
+		fp = std::fopen("policy_1.dat", "r");
+	}
+#endif
 
-	int a1, a2, aggShock;
-	double phi, z1, z2, wage, a, valuefn, cons, k1p, k2p, bp;
+	int a1, a2, aggShock, phi, z1, z2, wage, a;
+	double valuefn, cons, k1p, k2p, bp;
 	double phi1, phi2;
 
 	if (PHI_STATES != 2) {
@@ -505,6 +547,7 @@ void readResults(EquilFns& e, COUNTRYID whichCountry) {
 		std::fclose(fp);
 		exit(-1);
 	}
+	bool doublePhi = (phi1 == phi2);
 	vphis[0] = phi1;
 	vphis[1] = phi2;
 	StochProc stoch(vphis);
@@ -516,103 +559,55 @@ void readResults(EquilFns& e, COUNTRYID whichCountry) {
 	}
 
 	VecDoub vzs(CAP_SHOCK_SIZE);
-	if (fscanf(fp, "%lf, %lf", &z1, &z2) != CAP_SHOCK_SIZE) {
+	if (fscanf(fp, "%lf, %lf", &phi1, &phi2) != CAP_SHOCK_SIZE) {
 		std::cerr << "ERROR! akmodel.cc:readResults() - unable to read z's." << std::endl;
 		std::fclose(fp);
 		exit(-1);
 	}
-	vzs[0] = z1;
-	vzs[1] = z2;
+	vzs[0] = phi1;
+	vzs[1] = phi2;
 
 	VecDoub vws(WAGE_SHOCK_SIZE);
-	if (fscanf(fp, "%lf, %lf", &z1, &z2) != WAGE_SHOCK_SIZE) {
+	if (fscanf(fp, "%lf, %lf", &phi1, &phi2) != WAGE_SHOCK_SIZE) {
 		std::cerr << "ERROR! akmodel.cc:readResults() - unable to read w's." << std::endl;
 		std::fclose(fp);
 		exit(-1);
 	}
-	vws[0] = z1;
-	vws[1] = z2;
+	vws[0] = phi1;
+	vws[1] = phi2;
 
-	while (fscanf(fp, "%d, %d, %lf, %d, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf", 
+	if (1) {
+		char str[256];
+		fscanf(fp,"%s", str);
+	}
+	while (fscanf(fp, "%d, %d, %d, %d, %d, %d, %d, %d, %lf, %lf, %lf, %lf, %lf", 
 				       &a1,&a2,&phi,&aggShock,&z1,&z2,&wage,&a,&valuefn,&cons,&k1p,&k2p,&bp) == 13) {
 
-		std::vector<double>::iterator it;
 		VecInt index(8);
+
 		index[0] = a1;
 		index[1] = a2;
-
-		it = std::find(vphis.begin(), vphis.end(), phi);
-		if (it != vphis.end()) {
-			index[2] = std::distance(vphis.begin(), it);
-		}
-		else {
-			if (phi != *it) {
-				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find phi=" << phi << std::endl;
-				fclose(fp);
-				exit(-1);
-			}
-			index[2] = PHI_STATES - 1;
-		}
-
+		index[2] = phi;
 		index[3] = aggShock;
-
-		it = std::find(stoch.aggAssets.begin(), stoch.aggAssets.end(), a);
-		if (it != stoch.aggAssets.end()) {
-			index[4] = std::distance(stoch.aggAssets.begin(), it);
-		}
-		else {
-			if (a != *it) {
-				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find a=" << a << std::endl;
-				std::fclose(fp);
-				exit(-1);
-			}
-			index[4] = ASSET_SIZE - 1;
-		}
-
-		it = std::find(vzs.begin(), vzs.end(), z1);
-		if (it != vzs.end()) {
-			index[5] = std::distance(vzs.begin(), it);
-		}
-		else {
-			if (z1 != *it) {
-				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find z1=" << z1 << std::endl;
-				std::fclose(fp);
-				exit(-1);
-			}
-			index[5] = CAP_SHOCK_SIZE - 1;
-		}
-
-		it = std::find(vzs.begin(), vzs.end(), z2);
-		if (it != vzs.end()) {
-			index[6] = std::distance(vzs.begin(), it);
-		}
-		else {
-			if (z2 != *it) {
-				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find z2=" << z2 << std::endl;
-				std::fclose(fp);
-				exit(-1);
-			}
-			index[6] = CAP_SHOCK_SIZE - 1;
-		}
-
-		it = std::find(vws.begin(), vws.end(), wage);
-		if (it != vws.end()) {
-			index[7] = std::distance(vws.begin(), it);
-		}
-		else {
-			if (wage != *it) {
-				std::cerr << "ERROR! akmodel.cc:readResults() - unable to find w=" << wage << std::endl;
-				std::fclose(fp);
-				exit(-1);
-			}
-			index[7] = WAGE_SHOCK_SIZE - 1;
-		}
+		index[4] = a;
+		index[5] = z1;
+		index[6] = z2;
+		index[7] = wage;
 
 		e.setValueFn(index, valuefn);
 		e.consumption[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]]=cons;
 		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = k1p;
-		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = k2p;
-		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = bp;
+		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K2STATE] = k2p;
+		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][BSTATE] = bp;
+
+		if (doublePhi) {
+			index[2] = 1;
+			e.setValueFn(index, valuefn);
+			e.consumption[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]] = cons;
+			e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = k1p;
+			e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K2STATE] = k2p;
+			e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][BSTATE] = bp;
+		}
 	}
 	fclose(fp);
 }

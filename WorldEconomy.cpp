@@ -47,13 +47,29 @@ void WorldEconomy::simulateToSS(){
 
 void WorldEconomy::simulateNPeriods(int n)
 {
+	double r = 1;
 	for (int index = 0; index < n; index++){
+		double randNum = distr(gener);
+		curSt = myStoch[0]->getCondNewPhi(curSt, randNum);
+
 		testSeed = testdistr(testgener);
 #if 1
-		double r=zero(1, 4, 0.00001, *this);
+		double r=zero(1, 6, MINIMIZATION_TOL, *this);
+#elif 0
+		for (int j = 0; j < 1000; j++) {
+			double r = j*3.0 / 1000 + 1;
+			double netBonds = (*this)(r);
+			std::cout << "NetBonds: " << netBonds << " , r=" << r << std::endl;
+		}
+		exit(-1);
 #else
-		double r = 0;
-		double netBonds = glomin(-1, 1, 0, 1000, 0.001, 0.0001, *this, r);
+		const double targ = 0;
+		VecDoub start = VecDoub(1);
+		start[0] = r;
+		std::cout << "Simulate again." << std::endl;
+		SimulatedAnnealingWorld worldSolve = SimulatedAnnealingWorld(start, targ, 100, .01, *this, 1, currentPeriod+1);
+		VecDoub *soln = worldSolve.solve();
+		r = (*soln)[0];
 #endif
 		simulateOnePeriod(r);
 	}
@@ -61,8 +77,6 @@ void WorldEconomy::simulateNPeriods(int n)
 
 void WorldEconomy::simulateOnePeriod(double r)
 {
-	double randNum = distr(gener);
-	curSt = myStoch[0]->getCondNewPhi(curSt, randNum);
 	history[currentPeriod][numCountries] = curSt;
 	if (currentPeriod > 0) {
 		history[currentPeriod-1][numCountries + 1] = r;
@@ -84,13 +98,10 @@ void WorldEconomy::simulateOnePeriod(double r)
 
 double WorldEconomy::operator() (double r) const
 {
-	int localcurSt = myStoch[0]->getCondNewPhi(curSt, testSeed);
-	for (int i = 0; i < numCountries; i++) {
-		e[i]->testOnePeriod(localcurSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets(), testSeed + i);
-	}
-
+	int localcurSt = curSt;
 	double retVal = 0;
 	for (int i = 0; i < numCountries; i++) {
+		e[i]->testOnePeriod(localcurSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets(), testSeed + i);
 		retVal += e[i]->getAverageTest(BSTATE);
 	}
 

@@ -168,6 +168,7 @@
     <ClInclude Include="..\..\matrixIO.h" />
     <ClInclude Include="..\..\numericalrecipes.h" />
     <ClInclude Include="..\..\simAnneal.hpp" />
+    <ClInclude Include="..\..\SimulatedAnnealingWorld.h" />
     <ClInclude Include="..\..\State.h" />
     <ClInclude Include="..\..\StochProc.h" />
     <ClInclude Include="..\..\typedefs.h" />
@@ -185,6 +186,7 @@
     <ClCompile Include="..\..\EquilFns.cpp" />
     <ClCompile Include="..\..\households.cc" />
     <ClCompile Include="..\..\numericalrecipes.cc" />
+    <ClCompile Include="..\..\SimulatedAnnealingWorld.cpp" />
     <ClCompile Include="..\..\State.cpp" />
     <ClCompile Include="..\..\StochProc.cpp" />
     <ClCompile Include="..\..\tauchen.cc" />

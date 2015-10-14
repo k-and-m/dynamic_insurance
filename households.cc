@@ -219,15 +219,15 @@ void Household::iterate(int newAggState, int newPhiState, double r, const double
 void Household::test(int newAggState, int newPhiState, double r, const double agg1, const double agg2, double randNum){
 	
 	VecInt curSt = VecInt(NUM_SHOCK_VARS);
-	curSt[EF_K1] = oldState.current_indices[CAP1_SHOCK_STATE];
-	curSt[EF_K2] = oldState.current_indices[CAP2_SHOCK_STATE];
-	curSt[EF_W] = oldState.current_indices[WAGE_SHOCK_STATE];
-	curSt[EF_A] = oldState.current_indices[AGG_SHOCK_STATE];
-	curSt[EF_PHI] = oldState.current_indices[PHI_STATE];
+	curSt[EF_K1] = currentState.current_indices[CAP1_SHOCK_STATE];
+	curSt[EF_K2] = currentState.current_indices[CAP2_SHOCK_STATE];
+	curSt[EF_W] = currentState.current_indices[WAGE_SHOCK_STATE];
+	curSt[EF_A] = currentState.current_indices[AGG_SHOCK_STATE];
+	curSt[EF_PHI] = currentState.current_indices[PHI_STATE];
 
-	double k1 = oldAssetDist[K1STATE];
-	double k2 = oldAssetDist[K2STATE];
-	double b = oldAssetDist[BSTATE];
+	double k1 = currentAssetDist[K1STATE];
+	double k2 = currentAssetDist[K2STATE];
+	double b = currentAssetDist[BSTATE];
 	k1 = MAX(k1, MIN_CAPITAL);
 	k2 = MAX(k2, MIN_CAPITAL);
 

@@ -78,6 +78,9 @@
     <ClInclude Include="..\..\brent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\SimulatedAnnealingWorld.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\akmodel.cc">
@@ -123,6 +126,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\brent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SimulatedAnnealingWorld.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

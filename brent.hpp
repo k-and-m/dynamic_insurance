@@ -1,4 +1,7 @@
 #pragma once
+#ifndef BRENT_HPP_
+#define BRENT_HPP_
+
 #include <vector>
 namespace brent {
 
@@ -56,3 +59,5 @@ namespace brent {
 	double zero(double a, double b, double t, double f(double x));
 
 }
+
+#endif
