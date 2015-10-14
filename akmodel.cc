@@ -44,12 +44,12 @@ double maxPolicyDistance(const EquilFns &a, const EquilFns &b,
 double solveProblem(const VecDoub& phis, const VecDoub& prices, double c1prop, int seqNo);
 
 #if 1
-bool readPolicy = true;
+bool readPolicy = false;
 
 int main(int argc, char *argv[]) {
 	using namespace std;
 
-//	readPolicy = (argc==2);
+	readPolicy = (argc==2);
 	if (argc != 7) {
 		std::cout << "Incorrect number of arguments. Require: c1phiL c1phiH c2phiL c2phiH tau seqNo" << endl;
 		//				exit(-1);
