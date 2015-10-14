@@ -839,7 +839,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE-1], 2);
 #endif
-										in_process_values.setValueFn(vect, -minVal);
+										in_process_values.setValueFn(vect, MIN(-minVal,0));
 										in_process_values.consumption[g][gg][h][i][j][l][ll][m] =
 											current.current_states[ASTATE]
 											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE]
