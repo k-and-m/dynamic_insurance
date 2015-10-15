@@ -32,8 +32,8 @@ vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& 
 Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target,
 	VecDoub& r_squared);
-void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry);
-void readResults(EquilFns& e, COUNTRYID whichCountry);
+void printResults(const EquilFns& e, Mat3Doub& betas, const VecDoub& phis, COUNTRYID whichCountry);
+void readResults(EquilFns& e, Mat3Doub& betas, COUNTRYID whichCountry);
 void initialize(EquilFns& fns, const VecDoub& phis);
 void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst);
 int policy_iteration(double difference, State& initial, const StochProc& stoch,
@@ -143,6 +143,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 
 	double avgDist = 1;
 	for (int loopC = 0; (loopC < 20) && (avgDist>0.01); loopC++) {
+
 		EquilFns orig1, final1;
 		EquilFns orig2, final2;
 
@@ -150,24 +151,41 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		for (int i = 0; i < PHI_STATES; i++) {
 			myphis[i] = phis[i];
 		}
+
 		StochProc stoch1(myphis);
-		State current1(myphis, tau, recursEst);
-		current1.defaultInitialState(stoch1);
 		initialize(orig1, myphis);
 
 		if ((loopC > 0) || (readPolicy == false)) {
 			std::cout << "Solving Country 1" << std::endl;
 			solve(myphis, tau, orig1, final1, recursEst);
 #if 1
-			printResults(final1, myphis, C1);
+			printResults(final1, recursEst, myphis, C1);
 #else
 			std::cout << "Skipping printing" << std::endl;
 #endif
 		}
 		else {
 			std::cout << "Reading Country 1" << std::endl << std::flush;
-			readResults(final1, C1);
+			readResults(final1, recursEst, C1);
 		}
+
+		for (int dim1 = 0; dim1 < recursEst.dim1(); dim1++) {
+			if (dim1 > 0) {
+				std::cout << "==========" << std::endl;
+			}
+			for (int dim2 = 0; dim2 < recursEst.dim2(); dim2++) {
+				for (int dim3 = 0; dim3 < recursEst.dim3(); dim3++) {
+					if (dim3 > 0) {
+						std::cout << ",";
+					}
+					std::cout << recursEst[dim1][dim2][dim3];
+				}
+				std::cout << std::endl;
+			}
+		}
+
+		State current1(myphis, tau, recursEst);
+		current1.defaultInitialState(stoch1);
 
 		for (int i = PHI_STATES; i < 2 * PHI_STATES; i++) {
 			myphis[i - PHI_STATES] = phis[i];
@@ -181,14 +199,14 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 			std::cout << "Solving Country 2" << std::endl;
 			solve(myphis, tau, orig2, final2, recursEst);
 #if 1
-			printResults(final2, myphis, C2);
+			printResults(final2, recursEst, myphis, C2);
 #else
 			std::cout << "Skipping printing" << std::endl;
 #endif
 		}
 		else {
 			std::cout << "Reading Country 2" << std::endl << std::flush;
-			readResults(final2, C2);
+			readResults(final2, recursEst, C2);
 		}
 
 		std::cout << "Simulating world economies. " << NUMHHS << " households over " << TOTALPERIODS << " periods." << std::endl;
@@ -202,13 +220,10 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		}
 		avgDist = avgDist / NUM_RECURSIVE_FNS;
 
-		recursEst *= 0.7;
-		xres *= 0.3;
-
 		for (int dim1 = 0; dim1 < xres.dim1(); dim1++) {
 			for (int dim2 = 0; dim2 < xres.dim2(); dim2++) {
 				for (int dim3 = 0; dim3 < xres.dim3(); dim3++) {
-					recursEst[dim1][dim2][dim3] += xres[dim1][dim2][dim3];
+					recursEst[dim1][dim2][dim3] = 0.7*recursEst[dim1][dim2][dim3]+0.3*xres[dim1][dim2][dim3];
 				}
 			}
 		}
@@ -418,7 +433,7 @@ vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& 
 	return mydata;
 }
 
-void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry) {
+void printResults(const EquilFns& e, Mat3Doub& betas, const VecDoub& phis, COUNTRYID whichCountry) {
 	using namespace std;
 	ofstream out_stream;
 
@@ -426,8 +441,19 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 	os << "policy_" << whichCountry << ".dat";
 
 	StochProc stoch(phis);
-
 	out_stream.open(os.str());
+
+	for (int dim1 = 0; dim1 < betas.dim1(); dim1++) {
+		for (int dim2 = 0; dim2 < betas.dim2(); dim2++) {
+			for (int dim3 = 0; dim3 < betas.dim3(); dim3++) {
+				if (dim3 > 0) {
+					out_stream << ",";
+				}
+				out_stream<<betas[dim1][dim2][dim3];
+			}
+			out_stream << std::endl;
+		}
+	}
 
 	for (int i = 0; i < PHI_STATES; i++) {
 		if (i == (PHI_STATES - 1)) {
@@ -522,23 +548,31 @@ void printResults(const EquilFns& e, const VecDoub& phis, COUNTRYID whichCountry
 	out_stream.close();
 }
 
-void readResults(EquilFns& e, COUNTRYID whichCountry) {
+void readResults(EquilFns& e, Mat3Doub& betas, COUNTRYID whichCountry) {
 	using namespace std;
 
-#if 0
-	ostringstream os;
-	os << "policy_" << whichCountry << ".dat";
-	std::vector< char > data(os.str().begin(), os.str().end());
-	char *c_str = &(data[0]);
-	FILE *fp = std::fopen(c_str, "r");
-#else
 	FILE *fp = NULL;
 	if (whichCountry == C1) {
 		fp = std::fopen("policy_0.dat", "r");
 	}else{
 		fp = std::fopen("policy_1.dat", "r");
 	}
-#endif
+
+	for (int dim1 = 0; dim1 < betas.dim1(); dim1++) {
+		for (int dim2 = 0; dim2 < betas.dim2(); dim2++) {
+			double val1, val2, val3;
+			if (fscanf(fp, "%lf,%lf,%lf", &val1, &val2, &val3) == 3) {
+				betas[dim1][dim2][0] = val1;
+				betas[dim1][dim2][1] = val2;
+				betas[dim1][dim2][2] = val3;
+			}
+			else {
+				std::cerr << " ERROR! akmodel.cc-readResults(): could not read beta values for dim1=" << dim1 << " dim2=" << dim2 << std::endl;
+				std::fclose(fp);
+				exit(-1);
+			}
+		}
+	}
 
 	int a1, a2, aggShock, phi, z1, z2, wage, a;
 	double valuefn, cons, k1p, k2p, bp;

@@ -22,7 +22,8 @@ vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& Househo
 	return refPolInit(valAndPol);
 }
 
-vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& Household::refPolInit(const EquilFns *param){
+vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& Household::refPolInit(const EquilFns *param,
+	bool reset){
 	static vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>> reform_policy_fn;
 	static bool reform_pol_set = false;
 
@@ -73,11 +74,15 @@ vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& Househo
 		}
 	}
 
+	if (reset == true) {
+		reform_pol_set = false;
+	}
+
 	return reform_policy_fn;
 }
 
 Household::~Household(){
-	//delete s_proc;
+	refPolInit(valAndPol, true);
 }
 
 void Household::setInitialState(const State& p_currentState) {
