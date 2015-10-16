@@ -12,9 +12,9 @@ WorldEconomy::WorldEconomy(int p_numCountries, int currentState) : numCountries(
 	testdistr = uniform_real_distribution<double>(0.0, 1.0);
 	testgener = mt19937(WORLD_ECON_SEED);
 
-	history.resize(TOTALPERIODS);
-	for (int i = 0; i < TOTALPERIODS; i++){
-		history[i].resize(p_numCountries + 2);
+	history.resize(TOTALPERIODS+1);
+	for (int i = 0; i < TOTALPERIODS+1; i++){
+		history[i].resize(p_numCountries + 3);
 	}
 	currentPeriod = 0;
 }
@@ -32,6 +32,8 @@ WorldEconomy::~WorldEconomy()
 
 void WorldEconomy::initialize(int whichCountry, const EquilFns &pol, const StochProc& proc, const State& p_currentState)
 {
+	stateVar = p_currentState;
+
 	myStoch[whichCountry] = new StochProc(proc);
 	curSt = p_currentState.current_indices[PHI_STATE];
 
@@ -39,6 +41,13 @@ void WorldEconomy::initialize(int whichCountry, const EquilFns &pol, const Stoch
 	e[whichCountry]->initialize(pol,proc,p_currentState);
 	currentPeriod = 0;
 
+	history[currentPeriod][numCountries] = curSt;
+	history[currentPeriod][whichCountry] = MAX(0.00001,e[whichCountry]->getAverageAssets());
+
+	history[currentPeriod][numCountries + 2] += e[whichCountry]->getAverage(BSTATE);
+	if (whichCountry == 1) {
+		history[currentPeriod][numCountries + 1] = p_currentState.getNextR(history[0][0], history[0][1], curSt);
+	}
 }
 
 void WorldEconomy::simulateToSS(){
@@ -47,14 +56,10 @@ void WorldEconomy::simulateToSS(){
 
 void WorldEconomy::simulateNPeriods(int n)
 {
-	double r = 1;
 	for (int index = 0; index < n; index++){
-		double randNum = distr(gener);
-		curSt = myStoch[0]->getCondNewPhi(curSt, randNum);
-
 		testSeed = testdistr(testgener);
 #if 1
-		double r=zero(1, 6, MINIMIZATION_TOL, *this);
+		double r = history[currentPeriod][numCountries + 1];
 #elif 0
 		for (int j = 0; j < 1000; j++) {
 			double r = j*3.0 / 1000 + 1;
@@ -74,26 +79,27 @@ void WorldEconomy::simulateNPeriods(int n)
 		simulateOnePeriod(r);
 	}
 }
-
 void WorldEconomy::simulateOnePeriod(double r)
 {
+	currentPeriod += 1;
+	double randNum = distr(gener);
+	curSt = myStoch[0]->getCondNewPhi(curSt, randNum);
 	history[currentPeriod][numCountries] = curSt;
-	if (currentPeriod > 0) {
-		history[currentPeriod-1][numCountries + 1] = r;
-		history[currentPeriod][numCountries + 1] = 1;
-	}
+
 	double netBonds = 0;
 	for (int i = 0; i < numCountries; i++){
 		e[i]->simulateOnePeriod(curSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets());
 		history[currentPeriod][i] = e[i]->getAverageAssets();
-		if (history[currentPeriod][i] < MIN_AGG_ASSETS/100) {
-			std::cerr << "WorldEconomy.cpp-simulateOnePeriod(): AggAssets=" << history[currentPeriod][i] << ". Must be >= " << MIN_AGG_ASSETS << std::endl;
-			exit(-1);
+		if (history[currentPeriod][i] <= 0) {
+//			std::cerr << "WorldEconomy.cpp-simulateOnePeriod(): AggAssets=" << history[currentPeriod][i] << ". Must be >= " << MIN_AGG_ASSETS << std::endl;
+//			exit(-1);
+			history[currentPeriod][i] = 0.00001;
 		}
 		netBonds += e[i]->getAverage(BSTATE);
 	}
-	std::cout << "Period " << currentPeriod << " , A1: " << history[currentPeriod][0] << ", A2: " << history[currentPeriod][1] << ", Net Bonds: " << netBonds << " , r: " << r << std::endl;
-	currentPeriod += 1;
+	history[currentPeriod][numCountries + 1] = stateVar.getNextR(history[currentPeriod][0], history[currentPeriod][1],curSt);
+	history[currentPeriod][numCountries + 2] = netBonds;
+	std::cout << "Period " << currentPeriod << ", phi: " << curSt << " , A1: " << history[currentPeriod][0] << ", A2: " << history[currentPeriod][1] << ", Net Bonds: " << netBonds << " , r: " << r << std::endl;
 }
 
 double WorldEconomy::operator() (double r) const
@@ -171,7 +177,6 @@ double WorldEconomy::distance(VecDoub targets, int targetPhi)
 }
 */
 void WorldEconomy::printEconomies(){
-
 	for (int i = 0; i < numCountries; i++){
 		ostringstream os;
 		os << "economy_" << i << ".txt";

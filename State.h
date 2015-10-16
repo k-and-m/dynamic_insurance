@@ -23,7 +23,8 @@ public:
 	State& operator=(const State& fnSource);
 	double getRecursiveVal(int whichVal) const;
 	double getTau() const;
-
 	void defaultInitialState(StochProc& stoch2);
+	double getNextR(double a1, double a2, int phi_state) const;
+
 };
 

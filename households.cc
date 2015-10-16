@@ -27,7 +27,7 @@ vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& Househo
 	static vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>> reform_policy_fn;
 	static bool reform_pol_set = false;
 
-	if (reform_pol_set == false){
+	if ((reform_pol_set == false)&&(param!=NULL)){
 		std::cout << "Re-ordering policy function arrays." << std::endl << std::flush;
 		reform_pol_set = true;
 		reform_policy_fn.resize(PHI_STATES);
@@ -82,7 +82,7 @@ vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& Househo
 }
 
 Household::~Household(){
-	refPolInit(valAndPol, true);
+	refPolInit(NULL, true);
 }
 
 void Household::setInitialState(const State& p_currentState) {

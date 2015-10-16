@@ -75,6 +75,10 @@ double State::getRecursiveVal(int whichVal) const{
 	return exp(coefficients[whichVal][phiState][0] + coefficients[whichVal][phiState][1] * log(current_states[AGG_ASSET_STATE]) + coefficients[whichVal][phiState][2] * log(current_states[AGG2_ASSET_STATE]));
 }
 
+double State::getNextR(double a1, double a2, int phi_state) const{
+	return exp(coefficients[P_R][phi_state][0] + coefficients[P_R][phi_state][1] * log(a1) + coefficients[P_R][phi_state][2] * log(a2));
+}
+
 double State::getTau() const{
 	return prices[0];
 }

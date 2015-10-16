@@ -29,6 +29,8 @@ private:
 	int numCountries;
 	int curSt;
 	int currentPeriod;
+	State stateVar;
+
 	StochProc **myStoch;
 	vector < VecDoub > history;
 
