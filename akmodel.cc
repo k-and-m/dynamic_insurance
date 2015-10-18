@@ -27,7 +27,7 @@
 
 using namespace Eigen;
 
-vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
+vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target);
 Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target,
@@ -49,7 +49,7 @@ bool readPolicy = false;
 int main(int argc, char *argv[]) {
 	using namespace std;
 
-	readPolicy = true || (argc==2);
+	readPolicy = (argc==2);
 	std::cout << readPolicy << std::endl;
 	if (argc != 7) {
 		std::cout << "Incorrect number of arguments. Require: c1phiL c1phiH c2phiL c2phiH tau seqNo" << endl;
@@ -121,8 +121,8 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 			switch (i) {
 			case P_R:
 				recursEst[i][j][0] = 0.004;
-				recursEst[i][j][1] = 0.01;
-				recursEst[i][j][2] = 0.01;
+				recursEst[i][j][1] = -0.01;
+				recursEst[i][j][2] = -0.01;
 				break;
 			case AGG_ASSET_C1:
 				recursEst[i][j][0] = 0;
@@ -215,12 +215,10 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		VecDoub r_squareds(NUM_RECURSIVE_FNS);
 		Mat3Doub xres = getNextParameters(final1, stoch1, current1, final2, stoch2, current2, c1prop, r_squareds);
 
-		std::cout << " where2 " << std::endl;
 		avgDist = 0;
 		for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 			avgDist += r_squareds[i];
 		}
-		std::cout << " where3 " << std::endl;
 		avgDist = avgDist / NUM_RECURSIVE_FNS;
 
 		for (int dim1 = 0; dim1 < xres.dim1(); dim1++) {
@@ -266,10 +264,10 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	}
 
 	int numC = 2;
-	vector<MatrixXf> data = simulate(numC, policies1, stoch1, curSt1, policies2, stoch2, curSt2, c1target);
+	vector<MatrixXd> data = simulate(numC, policies1, stoch1, curSt1, policies2, stoch2, curSt2, c1target);
 
-	MatrixXf badRHS = data[0].middleCols(0, 4);
-	vector<VectorXf> badLHS;
+	MatrixXd badRHS = data[0].middleCols(0, 4);
+	vector<VectorXd> badLHS;
 	badLHS.resize(NUM_RECURSIVE_FNS);
 	badLHS[AGG_ASSET_C1] = data[0].middleCols(4, 1);
 	badLHS[AGG_ASSET_C2] = data[0].middleCols(5, 1);
@@ -279,14 +277,22 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 			badLHS[i][j] = log(badLHS[i][j]);
 		}
 	}
-	for (int i = 1; i < badRHS.cols(); i++) {
+	for (int i = 0; i < badRHS.cols(); i++) {
 		for (int j = 0; j < badLHS[0].rows(); j++) {
-			badRHS(j, i) = log(badRHS(j, i));
+			if (i == 0) {
+				if (badRHS(j, i) != 1) {
+					std::cerr << "ERROR!: akmodel.cc-getNextParameters(): incorrect constant for badRHS regression. How?";
+					badRHS(j, i) = 1;
+				}
+			}
+			else {
+				badRHS(j, i) = log(badRHS(j, i));
+			}
 		}
 	}
 
-	MatrixXf goodRHS = data[1].middleCols(0, 4);
-	vector<VectorXf> goodLHS;
+	MatrixXd goodRHS = data[1].middleCols(0, 4);
+	vector<VectorXd> goodLHS;
 	goodLHS.resize(NUM_RECURSIVE_FNS);
 	goodLHS[AGG_ASSET_C1] = data[1].middleCols(4, 1);
 	goodLHS[AGG_ASSET_C2] = data[1].middleCols(5, 1);
@@ -296,27 +302,40 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 			goodLHS[i][j] = log(goodLHS[i][j]);
 		}
 	}
-	for (int i = 1; i < goodRHS.cols(); i++) {
+	for (int i = 0; i < goodRHS.cols(); i++) {
 		for (int j = 0; j < goodLHS[0].rows(); j++) {
-			goodRHS(j, i) = log(goodRHS(j, i));
+			if (i == 0) {
+				if (goodRHS(j, i) != 1) {
+					std::cerr << "ERROR!: akmodel.cc-getNextParameters(): incorrect constant for goodRHS regression. How?";
+					goodRHS(j, i) = 1;
+				}
+			}
+			else {
+				goodRHS(j, i) = log(goodRHS(j, i));
+			}
 		}
 	}
 
 	Mat3Doub results(NUM_RECURSIVE_FNS, PHI_STATES, 3);
-	vector<VectorXf> bondBetas(2);
+	vector<VectorXd> bondBetas(2);
 	bondBetas[0].resize(4);
 	bondBetas[1].resize(4);
 
 	/* Note: This order reflects the order stored in State.h*/
 	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < PHI_STATES; j++) {
-			VectorXf temp;
+			MatrixXd tempRHS;
+			VectorXd tempLHS;
 			if (j == 0) {
-				temp = (badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS[i]);
+				tempRHS = (i == P_R) ? badRHS : badRHS.middleCols(0, 3);
+				tempLHS = badLHS[i];
 			}
 			else {
-				temp = (goodRHS.transpose() * goodRHS).ldlt().solve(goodRHS.transpose() * goodLHS[i]);
+				tempRHS = (i == P_R) ? goodRHS : goodRHS.middleCols(0, 3);
+				tempLHS = goodLHS[i];
 			}
+			VectorXd temp = (tempRHS.transpose() * tempRHS).ldlt().solve(tempRHS.transpose() * tempLHS);
+			std::cout << "Betas (" << i << "," << j << ")" << temp << std::endl;
 			if (i == P_R) {
 				bondBetas[j] = temp;
 			}
@@ -326,22 +345,44 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 				}
 			}
 		}
-		badRHS = badRHS.middleCols(0, 3);
-		goodRHS = goodRHS.middleCols(0, 3);
 	}
 
 	//NOW CALCULATE New R to get Net Bonds = 0
-	VectorXf newGoodRs(goodLHS[0].rows()), newBadRs(badLHS[0].rows());
+	VectorXd newGoodRs(goodLHS[0].rows()), newBadRs(badLHS[0].rows());
+	if (abs(bondBetas[1][3]) < 0.0001) {
+		std::cerr << "ERROR! akmodel.cc-getNextParameter(): goodNBs have almost zero alpha on R: " << bondBetas[1][3] << std::endl;
+		exit(-1);
+	}
 	for (int i = 0; i < newGoodRs.size(); i++) {
-		newGoodRs[i] = -goodLHS[0][i] / bondBetas[1][3];
+		newGoodRs[i] = goodRHS(i,3) - goodLHS[0][i] / bondBetas[1][3];
+	}
+	if (abs(bondBetas[0][3]) < 0.0001) {
+		std::cerr << "ERROR! akmodel.cc-getNextParameter(): badNBs have almost zero alpha on R: " << bondBetas[0][3] << std::endl;
+		exit(-1);
 	}
 	for (int i = 0; i < newBadRs.size(); i++) {
-		newBadRs[i] = -badLHS[0][i] / bondBetas[0][3];
+		newBadRs[i] = badRHS(i,3) - badLHS[0][i] / bondBetas[0][3];
 	}
 	goodLHS[P_R] = newGoodRs;
 	badLHS[P_R] = newBadRs;
 
-	VectorXf tempBetas =(badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS[P_R]);
+	MatrixXd tempRHS(goodRHS.rows(), goodRHS.cols() - 1);
+	for (int i = 0; i < tempRHS.cols(); i++) {
+		for (int j = 0; j < tempRHS.rows(); j++) {
+			tempRHS(j, i) = goodRHS(j, i);
+		}
+	}
+	goodRHS = tempRHS;
+
+	MatrixXd tempRHS2(badRHS.rows(), badRHS.cols() - 1);
+	for (int i = 0; i < tempRHS2.cols(); i++) {
+		for (int j = 0; j < tempRHS2.rows(); j++) {
+			tempRHS2(j, i) = badRHS(j, i);
+		}
+	}
+	badRHS = tempRHS2;
+
+	VectorXd tempBetas =(badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS[P_R]);
 	for (int i = 0; i < 3; i++) {
 		results[P_R][0][i] = tempBetas[i];
 	}
@@ -361,8 +402,8 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 		double avg_y = 0;
 		int totalObs = 0;
 		for (int hh = 0; hh < PHI_STATES; hh++) {
-			VectorXf tempLHS = (hh == 0) ? badLHS[h] : goodLHS[h];
-			MatrixXf tempRHS = (hh == 0) ? badRHS : goodRHS;
+			VectorXd tempLHS = (hh == 0) ? badLHS[h] : goodLHS[h];
+			MatrixXd tempRHS = (hh == 0) ? badRHS : goodRHS;
 			int NUMROWS = tempLHS.rows();
 			totalObs += NUMROWS;
 			for (int i = 0; i < NUMROWS; i++) {
@@ -374,16 +415,20 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 		TSS[h] = 0;
 		RSS[h] = 0;
 		for (int hh = 0; hh < PHI_STATES; hh++) {
-			VectorXf tempLHS = (hh == 0) ? badLHS[h] : goodLHS[h];
-			MatrixXf tempRHS = (hh == 0) ? badRHS : goodRHS;
+			VectorXd tempLHS = (hh == 0) ? badLHS[h] : goodLHS[h];
+			MatrixXd tempRHS = (hh == 0) ? badRHS : goodRHS;
 			int NUMROWS = tempLHS.rows();
 			for (int i = 0; i < NUMROWS; i++) {
-//				std::cout << h << "," << hh << "," << tempLHS[i] << "," << tempRHS(i, 0) << "," << tempRHS(i, 1)
-//					<< "," << tempRHS(i, 2) << "," << results[h][hh][0] << "," << results[h][hh][1] << ","
-//					<< results[h][hh][2] << ",";
+				if (tempRHS(i,0) != 1) {
+					std::cerr << "ERROR! akmodel.cc-getNextParameter(): tempRHS[" << i << ",0]!=1. Why not?" << std::endl;
+					exit(-1);
+				}
+				std::cout << h << "," << hh << "," << tempLHS[i] << "," << tempRHS(i, 0) << "," << tempRHS(i, 1)
+					<< "," << tempRHS(i, 2) << "," << results[h][hh][0] << "," << results[h][hh][1] << ","
+					<< results[h][hh][2] << ",";
 				TSS[h] += pow(tempLHS[i] - avg_y, 2);
 				double pred = results[h][hh][0] * tempRHS(i, 0) + results[h][hh][1] * tempRHS(i, 1) + results[h][hh][2] * tempRHS(i, 2);
-//				std::cout << pred << "," << tempLHS[i] - pred << std::endl;
+				std::cout << pred << "," << tempLHS[i] - pred << std::endl;
 				RSS[h] += pow(tempLHS[i] - pred, 2);
 			}
 		}
@@ -396,7 +441,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	return results;
 }
 
-vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
+vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target)
 {
 	//setup
@@ -416,7 +461,7 @@ vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& 
 	targets[1] = 1 - c1target;
 	double mydist = we.distance(targets);
 	*/
-	vector<MatrixXf> mydata;
+	vector<MatrixXd> mydata;
 	mydata.resize(PHI_STATES);
 	vector<VecDoub> hist = we.getHistory();
 	int numGoodStates = 0;
@@ -429,8 +474,8 @@ vector<MatrixXf> simulate(int numC, const EquilFns& policies1, const StochProc& 
 			numBadStates++;
 		}
 	}
-	mydata[0] = MatrixXf(numBadStates, 2 * numC + 3);
-	mydata[1] = MatrixXf(numGoodStates, 2 * numC + 3);
+	mydata[0] = MatrixXd(numBadStates, 2 * numC + 3);
+	mydata[1] = MatrixXd(numGoodStates, 2 * numC + 3);
 
 	int currentGood = 0;
 	int currentBad = 0;
