@@ -179,6 +179,7 @@ void Household::iterate(int newAggState, int newPhiState, double r, const double
 	currentState.current_states[AGG_ASSET_STATE] = oldState.getRecursiveVal(AGG_ASSET_C1);
 	if (currentState.current_states[AGG_ASSET_STATE] != currentState.current_states[AGG_ASSET_STATE]){
 		cout << "ERROR! Household.cc, interate() : currentState.current_state[AGG_ASSET_STATE]=NaN" << endl;
+		std::cout << "A1: " << agg1 << "   A2: " << agg2 << std::endl;
 		exit(-1);
 	}
 	if (currentState.current_states[AGG_ASSET_STATE] > MAX_AGG_ASSETS){
@@ -192,6 +193,7 @@ void Household::iterate(int newAggState, int newPhiState, double r, const double
 	currentState.current_states[AGG_ASSET_STATE] = oldState.getRecursiveVal(AGG_ASSET_C2);
 	if (currentState.current_states[AGG2_ASSET_STATE] != currentState.current_states[AGG2_ASSET_STATE]){
 		cout << "ERROR! Household.cc, interate() : currentState.current_state[AGG2_ASSET_STATE]=NaN" << endl;
+		std::cout << "A1: " << agg1 << "   A2: " << agg2 << std::endl;
 		exit(-1);
 	}
 	if (currentState.current_states[AGG2_ASSET_STATE] > MAX_AGG_ASSETS){

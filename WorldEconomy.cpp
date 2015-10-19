@@ -42,7 +42,7 @@ void WorldEconomy::initialize(int whichCountry, const EquilFns &pol, const Stoch
 	currentPeriod = 0;
 
 	history[currentPeriod][numCountries] = curSt;
-	history[currentPeriod][whichCountry] = MAX(0.00001,e[whichCountry]->getAverageAssets());
+	history[currentPeriod][whichCountry] = e[whichCountry]->getAverageAssets();
 
 	history[currentPeriod][numCountries + 2] += e[whichCountry]->getAverage(BSTATE);
 	if (whichCountry == 1) {
@@ -88,13 +88,9 @@ void WorldEconomy::simulateOnePeriod(double r)
 
 	double netBonds = 0;
 	for (int i = 0; i < numCountries; i++){
-		e[i]->simulateOnePeriod(curSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets());
-		history[currentPeriod][i] = e[i]->getAverageAssets();
-		if (history[currentPeriod][i] <= 0) {
-//			std::cerr << "WorldEconomy.cpp-simulateOnePeriod(): AggAssets=" << history[currentPeriod][i] << ". Must be >= " << MIN_AGG_ASSETS << std::endl;
-//			exit(-1);
-			history[currentPeriod][i] = 0.00001;
-		}
+		e[i]->simulateOnePeriod(curSt, r, MAX(MIN_AGG_ASSETS,e[0]->getAverageAssets()), 
+			MAX(MIN_AGG_ASSETS,e[1]->getAverageAssets()));
+		history[currentPeriod][i] = MAX(MIN_AGG_ASSETS, e[i]->getAverageAssets());
 		netBonds += e[i]->getAverage(BSTATE);
 	}
 	history[currentPeriod][numCountries + 1] = stateVar.getNextR(history[currentPeriod][0], history[currentPeriod][1],curSt);
@@ -107,7 +103,8 @@ double WorldEconomy::operator() (double r) const
 	int localcurSt = curSt;
 	double retVal = 0;
 	for (int i = 0; i < numCountries; i++) {
-		e[i]->testOnePeriod(localcurSt, r, e[0]->getAverageAssets(), e[1]->getAverageAssets(), testSeed + i);
+		e[i]->testOnePeriod(localcurSt, r, MAX(MIN_AGG_ASSETS, e[0]->getAverageAssets()),
+			MAX(MIN_AGG_ASSETS, e[1]->getAverageAssets()), testSeed+i);
 		retVal += e[i]->getAverageTest(BSTATE);
 	}
 

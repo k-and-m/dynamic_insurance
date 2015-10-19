@@ -266,6 +266,19 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	int numC = 2;
 	vector<MatrixXd> data = simulate(numC, policies1, stoch1, curSt1, policies2, stoch2, curSt2, c1target);
 
+	std::cout << "phi,1,A1,A2,R',A1',A2',NB" << std::endl;
+	for (int i = 0; i < data.size(); i++) {
+		for (int j = 0; j < data[i].rows(); j++) {
+			std::cout << i << "," << data[i](j, 0)
+				<< "," << data[i](j, 1)
+				<< "," << data[i](j, 2)
+				<< "," << data[i](j, 3)
+				<< "," << data[i](j, 4)
+				<< "," << data[i](j, 5)
+				<< "," << data[i](j, 6)
+				<< std::endl;
+		}
+	}
 	MatrixXd badRHS = data[0].middleCols(0, 4);
 	vector<VectorXd> badLHS;
 	badLHS.resize(NUM_RECURSIVE_FNS);
@@ -334,7 +347,9 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 				tempRHS = (i == P_R) ? goodRHS : goodRHS.middleCols(0, 3);
 				tempLHS = goodLHS[i];
 			}
-			VectorXd temp = (tempRHS.transpose() * tempRHS).ldlt().solve(tempRHS.transpose() * tempLHS);
+//			VectorXd temp = (tempRHS.transpose() * tempRHS).ldlt().solve(tempRHS.transpose() * tempLHS);
+//			VectorXd temp = tempRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(tempLHS);
+			VectorXd temp = (tempRHS.transpose()*tempRHS).inverse()*tempRHS.transpose()*tempLHS;
 			std::cout << "Betas (" << i << "," << j << ")" << temp << std::endl;
 			if (i == P_R) {
 				bondBetas[j] = temp;
@@ -382,12 +397,18 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	}
 	badRHS = tempRHS2;
 
-	VectorXd tempBetas =(badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS[P_R]);
+//	VectorXd tempBetas =(badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS[P_R]);
+//	VectorXd tempBetas = badRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(badLHS[P_R]);
+//	VectorXd tempBetas = badRHS.fullPivHouseholderQr().solve(badLHS[P_R]);
+	VectorXd tempBetas = (badRHS.transpose()*badRHS).inverse()*badRHS.transpose()*badLHS[P_R];
 	for (int i = 0; i < 3; i++) {
 		results[P_R][0][i] = tempBetas[i];
 	}
 
-	tempBetas = (goodRHS.transpose() * goodRHS).ldlt().solve(goodRHS.transpose() * goodLHS[P_R]);
+//	tempBetas = (goodRHS.transpose() * goodRHS).ldlt().solve(goodRHS.transpose() * goodLHS[P_R]);
+//	tempBetas = goodRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(goodLHS[P_R]);
+//	tempBetas = goodRHS.fullPivHouseholderQr().solve(goodLHS[P_R]);
+	tempBetas = (goodRHS.transpose()*goodRHS).inverse()*goodRHS.transpose()*goodLHS[P_R];
 	for (int i = 0; i < 3; i++) {
 		results[P_R][1][i] = tempBetas[i];
 	}
@@ -396,7 +417,6 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	VecDoub TSS(NUM_RECURSIVE_FNS);
 	VecDoub RSS(NUM_RECURSIVE_FNS);
 
-//	std::cout << "fn,phi,y,x1,x2,x3,beta1,beta2,beta3,y_hat,residual" << std::endl;
 	for (int h = 0; h < NUM_RECURSIVE_FNS; h++) {
 
 		double avg_y = 0;
@@ -423,12 +443,8 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 					std::cerr << "ERROR! akmodel.cc-getNextParameter(): tempRHS[" << i << ",0]!=1. Why not?" << std::endl;
 					exit(-1);
 				}
-				std::cout << h << "," << hh << "," << tempLHS[i] << "," << tempRHS(i, 0) << "," << tempRHS(i, 1)
-					<< "," << tempRHS(i, 2) << "," << results[h][hh][0] << "," << results[h][hh][1] << ","
-					<< results[h][hh][2] << ",";
 				TSS[h] += pow(tempLHS[i] - avg_y, 2);
 				double pred = results[h][hh][0] * tempRHS(i, 0) + results[h][hh][1] * tempRHS(i, 1) + results[h][hh][2] * tempRHS(i, 2);
-				std::cout << pred << "," << tempLHS[i] - pred << std::endl;
 				RSS[h] += pow(tempLHS[i] - pred, 2);
 			}
 		}
