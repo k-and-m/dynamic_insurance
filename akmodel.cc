@@ -224,7 +224,12 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		for (int dim1 = 0; dim1 < xres.dim1(); dim1++) {
 			for (int dim2 = 0; dim2 < xres.dim2(); dim2++) {
 				for (int dim3 = 0; dim3 < xres.dim3(); dim3++) {
-					recursEst[dim1][dim2][dim3] = 0.7*recursEst[dim1][dim2][dim3]+0.3*xres[dim1][dim2][dim3];
+					if (dim1 == P_R) {
+						recursEst[dim1][dim2][dim3] = xres[dim1][dim2][dim3];
+					}
+					else {
+						recursEst[dim1][dim2][dim3] = 0.7*recursEst[dim1][dim2][dim3] + 0.3*xres[dim1][dim2][dim3];
+					}
 				}
 			}
 		}
