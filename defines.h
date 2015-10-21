@@ -108,4 +108,4 @@
 #define NUMHHS 10000
 
 //random price
-#define NOMINAL_PRICE 1.0
+#define NOMINAL_PRICE 2.8

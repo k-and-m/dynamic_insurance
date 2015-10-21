@@ -296,7 +296,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 		}
 	}
 	for (int i = 0; i < badRHS.cols(); i++) {
-		for (int j = 0; j < badLHS[0].rows(); j++) {
+		for (int j = 0; j < badRHS.rows(); j++) {
 			if (i == 0) {
 				if (badRHS(j, i) != 1) {
 					std::cerr << "ERROR!: akmodel.cc-getNextParameters(): incorrect constant for badRHS regression. How?";
