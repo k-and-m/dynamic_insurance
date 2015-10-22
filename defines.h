@@ -48,7 +48,7 @@
 #endif
 
 #define MIN_CAPITAL 0
-#define MIN_BONDS -2*MAX_ASSETS 
+#define MIN_BONDS (-2*MAX_ASSETS) 
 
 #define WAGE_SHOCK_MEAN 0.85
 #define WAGE_SHOCK_STD .2 //Assuming log wages
@@ -57,7 +57,7 @@
 #define CURVATURE 3
 #define AGG_CURVATURE 1
 #define MINIMIZATION_TOL pow(10,-8)
-#define VAL_TOL 3*pow(10,-4)
+#define VAL_TOL (3*pow(10,-4))
 #define THETA 1
 #define ALPHA1 0.25
 #define BETA 0.925
@@ -68,22 +68,22 @@
 #define ASTATE 0
 
 #define K1STATE 0 //Capital is first state index
-#define K2STATE K1STATE+1 //capital in country 2 is second state index
-#define BSTATE K2STATE+1 //Bonds are second state index
+#define K2STATE (K1STATE+1) //capital in country 2 is second state index
+#define BSTATE (K2STATE+1) //Bonds are second state index
 //#define MGMT_C1_STATE BSTATE+1
 
-#define NUM_STATE_CHOICE_VARS BSTATE+1
+#define NUM_STATE_CHOICE_VARS (BSTATE+1)
 #define NUM_PERIOD_CHOICE_VARS 0
-#define NUM_CHOICE_VARS NUM_STATE_CHOICE_VARS+NUM_PERIOD_CHOICE_VARS
+#define NUM_CHOICE_VARS (NUM_STATE_CHOICE_VARS+NUM_PERIOD_CHOICE_VARS)
 
-#define CAP1_SHOCK_STATE ASTATE+1 //Shocks to capital are the third state index
-#define CAP2_SHOCK_STATE CAP1_SHOCK_STATE+1 //Shocks to capital are the third state index
-#define WAGE_SHOCK_STATE CAP2_SHOCK_STATE+1// Shocks to wages are the fourth state index
-#define AGG_SHOCK_STATE WAGE_SHOCK_STATE+1 //Aggregate shocks are the fifth state index
-#define PHI_STATE AGG_SHOCK_STATE + 1
-#define AGG_ASSET_STATE PHI_STATE+1
-#define AGG2_ASSET_STATE PHI_STATE+1
-#define NUM_STATE_VARS AGG2_ASSET_STATE+1
+#define CAP1_SHOCK_STATE (ASTATE+1) //Shocks to capital are the third state index
+#define CAP2_SHOCK_STATE (CAP1_SHOCK_STATE+1) //Shocks to capital are the third state index
+#define WAGE_SHOCK_STATE (CAP2_SHOCK_STATE+1)// Shocks to wages are the fourth state index
+#define AGG_SHOCK_STATE (WAGE_SHOCK_STATE+1) //Aggregate shocks are the fifth state index
+#define PHI_STATE (AGG_SHOCK_STATE + 1)
+#define AGG_ASSET_STATE (PHI_STATE+1)
+#define AGG2_ASSET_STATE (PHI_STATE+1)
+#define NUM_STATE_VARS (AGG2_ASSET_STATE+1)
 
 //Definitions for within "StochProc.shocks"
 #define EF_K1 0
@@ -98,13 +98,13 @@
 #define P_R 0
 #define AGG_ASSET_C1 1
 #define AGG_ASSET_C2 2
-#define NUM_RECURSIVE_FNS AGG_ASSET_C2+1
+#define NUM_RECURSIVE_FNS (AGG_ASSET_C2+1)
 #endif
 
 //definitions for Krusell-Smith economy simulation
 #define SSPERIODS 2500
 #define NUMPERIODS 1500
-#define TOTALPERIODS SSPERIODS+NUMPERIODS
+#define TOTALPERIODS (SSPERIODS+NUMPERIODS)
 #define NUMHHS 10000
 
 //random price

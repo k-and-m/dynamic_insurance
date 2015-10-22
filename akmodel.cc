@@ -142,8 +142,8 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		}
 	}
 
-	double avgDist = 1;
-	for (int loopC = 0; (loopC < 20) && (avgDist>0.01); loopC++) {
+	double avgDist = 0;
+	for (int loopC = 0; (loopC < 200) && (avgDist<0.99); loopC++) {
 
 		EquilFns orig1, final1;
 		EquilFns orig2, final2;
@@ -205,18 +205,19 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 			avgDist += r_squareds[i];
 		}
 		avgDist = avgDist / NUM_RECURSIVE_FNS;
-
-		bool updateR = ((avgDist * NUM_RECURSIVE_FNS - r_squareds[P_R]) / (NUM_RECURSIVE_FNS - 1) > 0.95);
+		double non_r_R2 = (avgDist * NUM_RECURSIVE_FNS - r_squareds[P_R]) / (NUM_RECURSIVE_FNS - 1);
+		bool updateR = non_r_R2 > 0.95;
+		if (updateR) {
+			std::cout << "Updating R estimate: " << non_r_R2 << std::endl;
+		}else{
+			std::cout << "Skipping R update" << std::endl;
+		}
 		for (int dim1 = 0; dim1 < xres.dim1(); dim1++) {
 			for (int dim2 = 0; dim2 < xres.dim2(); dim2++) {
 				for (int dim3 = 0; dim3 < xres.dim3(); dim3++) {
 					if (dim1 == P_R) {
 						if (updateR) {
 							recursEst[dim1][dim2][dim3] = 0.9*recursEst[dim1][dim2][dim3] + 0.1*xres[dim1][dim2][dim3];
-							std::cout << "Updating R estimate" << std::endl;
-						}
-						else {
-							std::cout << "Skipping R Update" << std::endl;
 						}
 					}
 					else {
