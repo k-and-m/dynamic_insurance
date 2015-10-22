@@ -48,7 +48,7 @@
 #endif
 
 #define MIN_CAPITAL 0
-#define MIN_BONDS -MAX_ASSETS 
+#define MIN_BONDS -2*MAX_ASSETS 
 
 #define WAGE_SHOCK_MEAN 0.85
 #define WAGE_SHOCK_STD .2 //Assuming log wages

@@ -73,7 +73,7 @@ State& State::operator=(const State& fnSource) {
 double State::getRecursiveVal(int whichVal) const{
 	int phiState = current_indices[PHI_STATE];
 	double value = exp(coefficients[whichVal][phiState][0] + coefficients[whichVal][phiState][1] * log(current_states[AGG_ASSET_STATE]) + coefficients[whichVal][phiState][2] * log(current_states[AGG2_ASSET_STATE]));
-	return (whichVal == P_R) ? MAX(MIN(value, 1-(1 - BETA)), 1) : value;
+	return (whichVal == P_R) ? MAX(MIN(value, 1 + (1 - BETA)), 1) : value;
 }
 
 double State::getNextR(double a1, double a2, int phi_state) const{

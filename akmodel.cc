@@ -170,21 +170,6 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 			readResults(final1, recursEst, C1);
 		}
 
-		for (int dim1 = 0; dim1 < recursEst.dim1(); dim1++) {
-			if (dim1 > 0) {
-				std::cout << "==========" << std::endl;
-			}
-			for (int dim2 = 0; dim2 < recursEst.dim2(); dim2++) {
-				for (int dim3 = 0; dim3 < recursEst.dim3(); dim3++) {
-					if (dim3 > 0) {
-						std::cout << ",";
-					}
-					std::cout << recursEst[dim1][dim2][dim3];
-				}
-				std::cout << std::endl;
-			}
-		}
-
 		State current1(myphis, tau, recursEst);
 		current1.defaultInitialState(stoch1);
 
@@ -221,16 +206,34 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		}
 		avgDist = avgDist / NUM_RECURSIVE_FNS;
 
+		bool updateR = ((avgDist * NUM_RECURSIVE_FNS - r_squareds[P_R]) / (NUM_RECURSIVE_FNS - 1) > 0.95);
 		for (int dim1 = 0; dim1 < xres.dim1(); dim1++) {
 			for (int dim2 = 0; dim2 < xres.dim2(); dim2++) {
 				for (int dim3 = 0; dim3 < xres.dim3(); dim3++) {
 					if (dim1 == P_R) {
-						recursEst[dim1][dim2][dim3] = xres[dim1][dim2][dim3];
+						if (updateR) {
+							recursEst[dim1][dim2][dim3] = 0.9*recursEst[dim1][dim2][dim3] + 0.1*xres[dim1][dim2][dim3];
+							std::cout << "Updating R estimate" << std::endl;
+						}
+						else {
+							std::cout << "Skipping R Update" << std::endl;
+						}
 					}
 					else {
 						recursEst[dim1][dim2][dim3] = 0.7*recursEst[dim1][dim2][dim3] + 0.3*xres[dim1][dim2][dim3];
 					}
 				}
+			}
+		}
+		for (int dim1 = 0; dim1 < recursEst.dim1(); dim1++) {
+			for (int dim2 = 0; dim2 < recursEst.dim2(); dim2++) {
+				for (int dim3 = 0; dim3 < recursEst.dim3(); dim3++) {
+					if (dim3 > 0) {
+						std::cout << ",";
+					}
+					std::cout << recursEst[dim1][dim2][dim3];
+				}
+				std::cout << std::endl;
 			}
 		}
 	}
