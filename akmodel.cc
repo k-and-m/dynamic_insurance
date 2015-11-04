@@ -6,7 +6,8 @@
  */
 
 #define POLICY_ITERATION 1
-#define AMOEBA 1
+#define AMOEBA 0
+#define BFGS 1
 #define SIMULATED_ANNEALING 0
 #define POLICY_CONVERGENCE 0
 
@@ -18,6 +19,11 @@
 #include "WorldEconomy.h"
 #include "vfiMaxUtil.h"
 #include <Eigen/Dense>
+#include "mpi.h"
+#if BFGS
+#include <dlib/optimization.h>
+using namespace dlib;
+#endif
 
 #if 0
 #if SIMULATED_ANNEALING
@@ -27,7 +33,7 @@
 
 using namespace Eigen;
 
-vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
+std::vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target);
 Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target,
@@ -221,7 +227,8 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 						}
 					}
 					else {
-						recursEst[dim1][dim2][dim3] = 0.7*recursEst[dim1][dim2][dim3] + 0.3*xres[dim1][dim2][dim3];
+						std::cout << "Updating beta estimates" << std::endl;
+						recursEst[dim1][dim2][dim3] = 0.3*recursEst[dim1][dim2][dim3] + 0.7*xres[dim1][dim2][dim3];
 					}
 				}
 			}
@@ -268,12 +275,12 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 {
 
 	if (r_squared.size() != NUM_RECURSIVE_FNS) {
-		std::cerr << "akmodel.cc.getNextParameters(): Expect a vector of size " << NUM_RECURSIVE_FNS << " for r-squareds. Received vector of size " << r_squared.size() << std::endl;
+		std::cerr << "akmodel.cc.getNextParameters(): Expect a std::vector of size " << NUM_RECURSIVE_FNS << " for r-squareds. Received std::vector of size " << r_squared.size() << std::endl;
 		exit(-1);
 	}
 
 	int numC = 2;
-	vector<MatrixXd> data = simulate(numC, policies1, stoch1, curSt1, policies2, stoch2, curSt2, c1target);
+	std::vector<MatrixXd> data = simulate(numC, policies1, stoch1, curSt1, policies2, stoch2, curSt2, c1target);
 
 	std::cout << "phi,1,A1,A2,R',A1',A2',NB" << std::endl;
 	for (int i = 0; i < data.size(); i++) {
@@ -289,7 +296,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 		}
 	}
 	MatrixXd badRHS = data[0].middleCols(0, 4);
-	vector<VectorXd> badLHS;
+	std::vector<VectorXd> badLHS;
 	badLHS.resize(NUM_RECURSIVE_FNS);
 	badLHS[AGG_ASSET_C1] = data[0].middleCols(4, 1);
 	badLHS[AGG_ASSET_C2] = data[0].middleCols(5, 1);
@@ -314,7 +321,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	}
 
 	MatrixXd goodRHS = data[1].middleCols(0, 4);
-	vector<VectorXd> goodLHS;
+	std::vector<VectorXd> goodLHS;
 	goodLHS.resize(NUM_RECURSIVE_FNS);
 	goodLHS[AGG_ASSET_C1] = data[1].middleCols(4, 1);
 	goodLHS[AGG_ASSET_C2] = data[1].middleCols(5, 1);
@@ -339,7 +346,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	}
 
 	Mat3Doub results(NUM_RECURSIVE_FNS, PHI_STATES, 3);
-	vector<VectorXd> bondBetas(2);
+	std::vector<VectorXd> bondBetas(2);
 	bondBetas[0].resize(4);
 	bondBetas[1].resize(4);
 
@@ -466,7 +473,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	return results;
 }
 
-vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
+std::vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target)
 {
 	//setup
@@ -486,9 +493,9 @@ vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochProc& 
 	targets[1] = 1 - c1target;
 	double mydist = we.distance(targets);
 	*/
-	vector<MatrixXd> mydata;
+	std::vector<MatrixXd> mydata;
 	mydata.resize(PHI_STATES);
-	vector<VecDoub> hist = we.getHistory();
+	std::vector<VecDoub> hist = we.getHistory();
 	int numGoodStates = 0;
 	int numBadStates = 0;
 	for (int i = 0; i < NUMPERIODS-1; i++) {
@@ -798,8 +805,16 @@ void initialize(EquilFns& fns, const VecDoub& phis) {
 
 void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst) {
 	using namespace std;
-	EquilFns in_process_values, last_values;
 
+#if USE_MPI
+	int numprocs, rank, namelen;
+
+	MPI_Init(NULL, NULL);
+	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
+	EquilFns last_values;
 	StochProc stoch(phis);
 
 	int counter = 0;
@@ -811,12 +826,45 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 	while (counter < MAX_ITER && diff > VAL_TOL) { 
 
 		counter++;
+		EquilFns in_process_values;
+
+#if USE_MPI
+		int mystart = (ASSET_SIZE / numprocs) * rank;
+		int myend;
+		if (ASSET_SIZE % numprocs > rank) {
+			mystart += rank;
+			myend = mystart + (ASSET_SIZE / numprocs) + 1;
+		}
+		else {
+			mystart += ASSET_SIZE % numprocs;
+			myend = mystart + (ASSET_SIZE / numprocs);
+		}
+
+		MPI_Barrier(MPI_COMM_WORLD);
+		double *policyArray = NULL;
+		int SIZE = last_values.policyToArray(policyArray);
+
+		MPI_Bcast(policyArray, SIZE, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		if (rank != 0) {
+			last_values.setPolicyFromArray(policyArray);
+		}
+		delete policyArray;
+		MPI_Barrier(MPI_COMM_WORLD);
+
+		for (int j = mystart; j < myend; j++) {
+#if OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(3)
+#endif
+			for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+#else
 #if OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(3)
 #endif
 		for (int j = 0; j < ASSET_SIZE; j++) {
 			for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+#endif
 				for (int gg = 0; gg < AGG_ASSET_SIZE; gg++) {
+					std::cout << g << ":" << gg << ":" << j << std::endl;
 					for (int h = 0; h < PHI_STATES; h++) {
 						for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
 							State current(phis, prices, recEst);
@@ -881,19 +929,9 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 											sqrt(
 												MAX(MIN_BONDS, last_values.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE])
 												- MIN_BONDS);
-										/*
-																		temp1[MGMT_C1_STATE] =
-																		sqrt(
-																		MAX(MIN_MGMT, last_values.policy_fn[h][i][j][l][ll][m][MGMT_C1_STATE])
-																		- MIN_MGMT);
-																		*/
 										VecDoub_I initial_point(temp1);
 										VecDoub temp2;
 										double minVal = 0;
-										//#if IID_CAP==0
-										//								std::cerr<<"akmodel.cc:solve - Error. Expect iid capital shocks."<<std::endl;
-										//								exit(-1);
-										//#endif
 										if (l == 0 && ll == 0) {
 											if (ub.constraintBinds()) {
 #if K2CHOICE
@@ -911,10 +949,6 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 												minVal = ub.getBoundUtil();
 											}
 											else {
-												//#if	SIMULATED_ANNEALING
-												//										cerr<<"cannot set both amoeba and simulated annealing"<<endl;
-												//										exit(-1);
-												//#endif
 #if AMOEBA
 												const double delta = MAX(0.001, 0.1 * initial_point[K1STATE]);
 												if (initial_point.size() != 2) {
@@ -923,10 +957,14 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 												}
 												temp2 = am.minimize(initial_point, delta, ub);
 												if (temp2.size() != 2) {
-													std::cerr << "ERROR! akmodel.cc - solve(): minimize returned vector of size " << temp2.size() << std::endl;
+													std::cerr << "ERROR! akmodel.cc - solve(): minimize returned std::vector of size " << temp2.size() << std::endl;
 													exit(-1);
 												}
 												minVal = ((vfiMaxUtil)ub)(temp2);
+#elif BFGS
+												find_min_using_approximate_derivatives(bfgs_search_strategy(),
+													objective_delta_stop_strategy(1e-7),
+													ub, initial_point, -1);
 #else
 												SimulatedAnnealingWorld saw(initial_point, 100, MAX_ITER / counter, MINIMIZATION_TOL, 0.9,
 													&current, &stoch, &last_values, &utility, 1.0 / (counter / 10 + 1));
@@ -993,8 +1031,16 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 				}
 			}
 		}
-
+#if USE_MPI
+		in_process_values.policyToArray(policyArray);
+		MPI_Barrier(MPI_COMM_WORLD);
+		double *combinedPolicy = new double[SIZE];
+		MPI_Reduce(policyArray, combinedPolicy, SIZE, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		if(rank==0){
+			in_process_values.setPolicyFromArray(combinedPolicy);
+#else
 		{
+#endif
 			VecInt location1 = VecInt(NUM_STATE_VARS);
 			VecInt location2 = VecInt(NUM_STATE_VARS);
 #if	POLICY_CONVERGENCE
@@ -1025,43 +1071,6 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 				<< "policy diff=" << diff2 << "       Value diff=" << diff << std::endl;
 #endif
-#if 0
-			std::cout << std::scientific;
-			std::cout << " Params: phi=" << phis[0] << ":" << phis[1]
-				<< " p1=" << prices[0] << ":" << prices[3]
-				<< " p2=" << prices[1] << ":" << prices[4]
-				<< " r=" << prices[2] << ":" << prices[5]
-				<< endl << diff << "         " << diff2;
-			std::cout.unsetf(std::ios_base::floatfield);
-			cout << " , " << location1[0] << ":"
-				<< location1[1] << ":" << location1[2] << ":"
-				<< location1[3] << "  "
-				<< last_values.value_fn[0][location1[0]][location1[1]][location1[2]][location1[3]][0]
-				<< "  "
-				<< in_process_values.value_fn[0][location1[0]][location1[1]][location1[2]][location1[3]][0]
-
-				<< endl << std::scientific << diff2;
-			cout.unsetf(std::ios_base::floatfield);
-			cout << " , " << location2[0] << ":"
-				<< location2[1] << ":" << location2[2] << ":"
-				<< location2[3] << "  "
-				<< last_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][0]
-				<< "  "
-				<< last_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][1]
-				<< "  "
-				<< last_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][2]
-				<< "  "
-				<< last_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][3]
-				<< "  "
-				<< in_process_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][0]
-				<< "  "
-				<< in_process_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][1]
-				<< "  "
-				<< in_process_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][2]
-				<< "  "
-				<< in_process_values.policy_fn[0][location2[0]][location2[1]][location2[2]][location2[3]][3]
-				std::cout << endl;
-#endif
 			std::cout << max_iterations << endl;
 		}
 
@@ -1069,7 +1078,9 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 	}
 
 	final = last_values;
-
+#if USE_MPI
+	MPI_Finalize();
+#endif
 	return;
 }
 

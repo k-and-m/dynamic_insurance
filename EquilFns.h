@@ -10,6 +10,8 @@ public:
 	void setValueFn(VecInt_I param, const double val);
 	double getValueFn(VecInt_I param) const;
 	vector<vector<VecDoub>>::const_iterator getReorderedValueFnVector(VecInt_I param) const;
+	int policyToArray(double *toAlloc) const;
+	void setPolicyFromArray(double *values);
 
 #else
 	VecDoub *******value_fn; //Could be just a double and haven't changed yet

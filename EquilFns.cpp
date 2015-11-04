@@ -33,7 +33,12 @@ EquilFns::EquilFns() {
 								consumption[f][g][h][i][ii][l][ll].resize(WAGE_SHOCK_SIZE);
 								policy_fn[f][g][h][i][ii][l][ll].resize(WAGE_SHOCK_SIZE);
 								for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
+									value_fn[f][g][h][i][ii][l][ll][m] = 0;
+									consumption[f][g][h][i][ii][l][ll][m] = 0;
 									policy_fn[f][g][h][i][ii][l][ll][m].resize(NUM_CHOICE_VARS);
+									for (int n = 0; n < NUM_CHOICE_VARS; n++) {
+										policy_fn[f][g][h][i][ii][l][ll][m][n] = 0;
+									}
 								}
 							}
 						}
@@ -138,6 +143,61 @@ double EquilFns::getValueFn(VecInt_I param) const{
 
 	return value_fn[param[0]][param[1]][param[2]][param[3]][param[4]][param[5]][param[6]][param[7]];
 }
+
+int EquilFns::policyToArray(double *toAlloc) const {
+	toAlloc = new double[AGG_ASSET_SIZE*AGG_ASSET_SIZE*PHI_STATES*AGG_SHOCK_SIZE*ASSET_SIZE*CAP_SHOCK_SIZE*WAGE_SHOCK_SIZE*NUM_CHOICE_VARS];
+
+	int counter = 0;
+	for (int f = 0; f < AGG_ASSET_SIZE; f++) {
+		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+			for (int h = 0; h < PHI_STATES; h++) {
+				for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
+					for (int ii = 0; ii < ASSET_SIZE; ii++) {
+						for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
+							for (int ll = 0; ll < CAP_SHOCK_SIZE; ll++) {
+								for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
+									for (int n = 0; n < NUM_CHOICE_VARS; n++) {
+										toAlloc[counter] = policy_fn[f][g][h][i][ii][l][ll][m][n];
+										counter++;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return counter;
+}
+
+void EquilFns::setPolicyFromArray(double *values) {
+	int counter = 0;
+	for (int f = 0; f < AGG_ASSET_SIZE; f++) {
+		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+			for (int h = 0; h < PHI_STATES; h++) {
+				for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
+					for (int ii = 0; ii < ASSET_SIZE; ii++) {
+						for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
+							for (int ll = 0; ll < CAP_SHOCK_SIZE; ll++) {
+								for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
+									for (int n = 0; n < NUM_CHOICE_VARS; n++) {
+										policy_fn[f][g][h][i][ii][l][ll][m][n] = values[counter];
+										counter++;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+}
+
+
 
 vector<vector<VecDoub>>::const_iterator EquilFns::getReorderedValueFnVector(VecInt_I param) const{
 	if (param.size() != 5) {

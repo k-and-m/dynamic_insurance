@@ -1,6 +1,6 @@
 #ifndef DEFINES_H_
 #define DEFINES_H_
-#define OPENMP 1
+#define OPENMP 1	
 #define ASSETSTATE 1
 #define IID_CAP 1
 #define WORLD_ECON_SEED 1234
@@ -12,8 +12,8 @@
 
 #define AGG_SHOCK_SIZE 1
 
-#define AGG_ASSET_SIZE 5
-#define MAX_AGG_ASSETS 5
+#define AGG_ASSET_SIZE 20
+#define MAX_AGG_ASSETS 10
 #define MIN_AGG_ASSETS 0.1 
 
 #define PHI_STATES 2
