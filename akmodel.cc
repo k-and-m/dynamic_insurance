@@ -6,10 +6,11 @@
  */
 
 #define POLICY_ITERATION 1
-#define AMOEBA 0
-#define BFGS 1
+#define AMOEBA 1
+#define BFGS 0
 #define SIMULATED_ANNEALING 0
 #define POLICY_CONVERGENCE 0
+#define USE_MPI 1
 
 #include "BaseHeader.h"
 #include "utilityFunctions.h"
@@ -19,7 +20,9 @@
 #include "WorldEconomy.h"
 #include "vfiMaxUtil.h"
 #include <Eigen/Dense>
+#if USE_MPI
 #include "mpi.h"
+#endif
 #if BFGS
 #include <dlib/optimization.h>
 using namespace dlib;
@@ -38,10 +41,10 @@ std::vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochP
 Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, const State& curSt1,
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target,
 	VecDoub& r_squared);
-void printResults(const EquilFns& e, Mat3Doub& betas, const VecDoub& phis, COUNTRYID whichCountry);
+void printResults(const EquilFns& e, const Mat3Doub& betas, const VecDoub& phis, const COUNTRYID whichCountry);
 void readResults(EquilFns& e, Mat3Doub& betas, COUNTRYID whichCountry);
 void initialize(EquilFns& fns, const VecDoub& phis);
-void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst);
+void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst, const COUNTRYID whichCountry);
 int policy_iteration(double difference, State& initial, const StochProc& stoch,
 	EquilFns& lastFns, EquilFns& currentFns);
 double maxValueDistance(const EquilFns &a, const EquilFns &b, VecInt& location);
@@ -54,6 +57,11 @@ bool readPolicy = false;
 
 int main(int argc, char *argv[]) {
 	using namespace std;
+#if USE_MPI
+        std::cout<<"init"<<std::endl<<std::flush;
+        MPI_Init(&argc, &argv);
+        std::cout<<"init done"<<std::endl<<std::flush;
+#endif
 
 	readPolicy = (argc==2);
 	std::cout << readPolicy << std::endl;
@@ -95,6 +103,9 @@ int main(int argc, char *argv[]) {
 	double dis = solveProblem(phi, tau, 0.3, 0);
 #endif
 	std::cout << "soln dist: " << dis << endl;
+#if USE_MPI
+	MPI_Finalize();
+#endif
 
 	return 0;
 }
@@ -161,20 +172,12 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 
 		StochProc stoch1(myphis);
 		initialize(orig1, myphis);
+		if (utilityFunctions::fileExists("policy_0.dat")) {
+			readResults(orig1, recursEst, C1);
+		}
 
-		if ((loopC > 0) || (readPolicy == false)) {
-			std::cout << "Solving Country 1" << std::endl;
-			solve(myphis, tau, orig1, final1, recursEst);
-#if 1
-			printResults(final1, recursEst, myphis, C1);
-#else
-			std::cout << "Skipping printing" << std::endl;
-#endif
-		}
-		else {
-			std::cout << "Reading Country 1" << std::endl << std::flush;
-			readResults(final1, recursEst, C1);
-		}
+		std::cout << "Solving Country 1" << std::endl;
+		solve(myphis, tau, orig1, final1, recursEst, C1);
 
 		State current1(myphis, tau, recursEst);
 		current1.defaultInitialState(stoch1);
@@ -186,20 +189,12 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		State current2(myphis, tau, recursEst);
 		current2.defaultInitialState(stoch2);
 		initialize(orig2, myphis);
+		if (utilityFunctions::fileExists("policy_1.dat")) {
+			readResults(orig2, recursEst, C2);
+		}
 
-		if ((loopC > 0) || (readPolicy == false)) {
-			std::cout << "Solving Country 2" << std::endl;
-			solve(myphis, tau, orig2, final2, recursEst);
-#if 1
-			printResults(final2, recursEst, myphis, C2);
-#else
-			std::cout << "Skipping printing" << std::endl;
-#endif
-		}
-		else {
-			std::cout << "Reading Country 2" << std::endl << std::flush;
-			readResults(final2, recursEst, C2);
-		}
+		std::cout << "Solving Country 2" << std::endl;
+		solve(myphis, tau, orig2, final2, recursEst, C2);
 
 		std::cout << "Simulating world economies. " << NUMHHS << " households over " << TOTALPERIODS << " periods." << std::endl;
 
@@ -546,7 +541,7 @@ std::vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochP
 	return mydata;
 }
 
-void printResults(const EquilFns& e, Mat3Doub& betas, const VecDoub& phis, COUNTRYID whichCountry) {
+void printResults(const EquilFns& e, const Mat3Doub& betas, const VecDoub& phis, const COUNTRYID whichCountry) {
 	using namespace std;
 	ofstream out_stream;
 
@@ -803,15 +798,17 @@ void initialize(EquilFns& fns, const VecDoub& phis) {
 	return;
 }
 
-void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst) {
+void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst, const COUNTRYID whichCountry) {
 	using namespace std;
 
 #if USE_MPI
 	int numprocs, rank, namelen;
+        static int firstCall = 0;
 
-	MPI_Init(NULL, NULL);
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+        std::cout<<"numprocs:"<<numprocs<<std::endl<<std::flush;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        std::cout<<"rank:"<<rank<<std::endl<<std::flush;
 #endif
 
 	EquilFns last_values;
@@ -829,42 +826,45 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 		EquilFns in_process_values;
 
 #if USE_MPI
-		int mystart = (ASSET_SIZE / numprocs) * rank;
+		int mystart = (AGG_ASSET_SIZE / numprocs) * rank;
 		int myend;
-		if (ASSET_SIZE % numprocs > rank) {
+		if (AGG_ASSET_SIZE % numprocs > rank) {
 			mystart += rank;
-			myend = mystart + (ASSET_SIZE / numprocs) + 1;
+			myend = mystart + (AGG_ASSET_SIZE / numprocs) + 1;
 		}
 		else {
-			mystart += ASSET_SIZE % numprocs;
-			myend = mystart + (ASSET_SIZE / numprocs);
+			mystart += AGG_ASSET_SIZE % numprocs;
+			myend = mystart + (AGG_ASSET_SIZE / numprocs);
 		}
 
-		MPI_Barrier(MPI_COMM_WORLD);
-		double *policyArray = NULL;
-		int SIZE = last_values.policyToArray(policyArray);
 
+		int SIZE = AGG_ASSET_SIZE*AGG_ASSET_SIZE*PHI_STATES*AGG_SHOCK_SIZE*ASSET_SIZE*CAP_SHOCK_SIZE*CAP_SHOCK_SIZE*WAGE_SHOCK_SIZE*NUM_CHOICE_VARS;
+		double *policyArray = new double[SIZE];
+                if(rank==0){
+		   last_values.policyToArray(policyArray);
+                }
+		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Bcast(policyArray, SIZE, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 		if (rank != 0) {
+                	std::cout<<rank<<" set"<<std::endl<<std::flush;
 			last_values.setPolicyFromArray(policyArray);
 		}
-		delete policyArray;
 		MPI_Barrier(MPI_COMM_WORLD);
 
-		for (int j = mystart; j < myend; j++) {
+		for (int g = mystart; g < myend; g++) {
+                   std::cout<<rank<<":"<<g<<std::endl<<std::flush;
 #if OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(3)
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 #endif
-			for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+			for (int j = 0; j < ASSET_SIZE; j++) {
 #else
 #if OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(3)
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 #endif
-		for (int j = 0; j < ASSET_SIZE; j++) {
-			for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+			for (int j = 0; j < ASSET_SIZE; j++) {
 #endif
 				for (int gg = 0; gg < AGG_ASSET_SIZE; gg++) {
-					std::cout << g << ":" << gg << ":" << j << std::endl;
 					for (int h = 0; h < PHI_STATES; h++) {
 						for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
 							State current(phis, prices, recEst);
@@ -1033,9 +1033,11 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 		}
 #if USE_MPI
 		in_process_values.policyToArray(policyArray);
-		MPI_Barrier(MPI_COMM_WORLD);
 		double *combinedPolicy = new double[SIZE];
+		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Reduce(policyArray, combinedPolicy, SIZE, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		delete [] policyArray;
+                policyArray=NULL;
 		if(rank==0){
 			in_process_values.setPolicyFromArray(combinedPolicy);
 #else
@@ -1075,12 +1077,11 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 		}
 
 		last_values = in_process_values;
+
+		printResults(last_values, recEst, phis, whichCountry);
 	}
 
 	final = last_values;
-#if USE_MPI
-	MPI_Finalize();
-#endif
 	return;
 }
 

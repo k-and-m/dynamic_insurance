@@ -11,7 +11,6 @@
 #include "BaseHeader.h"
 #include "utilityFunctions.h"
 #include "vfiMaxUtil.h"
-#include "eulerUtility.h"
 #include <random>
 #include <string>
 #include <sstream>

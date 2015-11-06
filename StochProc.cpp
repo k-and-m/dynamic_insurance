@@ -1,5 +1,3 @@
-#pragma once
-
 #include "StochProc.h"
 
 StochProc::StochProc(const StochProc& init){

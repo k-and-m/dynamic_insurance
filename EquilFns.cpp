@@ -145,8 +145,6 @@ double EquilFns::getValueFn(VecInt_I param) const{
 }
 
 int EquilFns::policyToArray(double *toAlloc) const {
-	toAlloc = new double[AGG_ASSET_SIZE*AGG_ASSET_SIZE*PHI_STATES*AGG_SHOCK_SIZE*ASSET_SIZE*CAP_SHOCK_SIZE*WAGE_SHOCK_SIZE*NUM_CHOICE_VARS];
-
 	int counter = 0;
 	for (int f = 0; f < AGG_ASSET_SIZE; f++) {
 		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
