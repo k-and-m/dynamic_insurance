@@ -12,18 +12,9 @@
 
 #define AGG_SHOCK_SIZE 1
 
-#define AGG_ASSET_SIZE 20
-#define MAX_AGG_ASSETS 10
-#define MIN_AGG_ASSETS 0.1 
+#define PHI_STATES 1
 
-#define PHI_STATES 2
-
-#if ASSETSTATE
 #define ASSET_SIZE 150
-#else
-#define BOND_SIZE 30
-#define CAPITAL_SIZE 30
-#endif
 
 #define CAP_SHOCK_SIZE	2
 #define WAGE_SHOCK_SIZE 2
@@ -38,13 +29,9 @@
 #define CAP2_SHOCK_PERSISTENCE 0
 #define CAP2_SHOCK_SPREAD 3 //Number of standard deviations per side for Tauchen
 
-
 #if ASSETSTATE
 #define MAX_ASSETS 40
 #define MIN_ASSETS 0 
-
-//#define MIN_MGMT 0
-//#define MAX_MGMT 100
 #endif
 
 #define MIN_CAPITAL 0
@@ -61,7 +48,7 @@
 #define THETA 1
 #define ALPHA1 0.25
 #define BETA 0.925
-#define MAX_ITER 100
+#define MAX_ITER 150
 
 //Definitions for state.current_states, which is a VecDoub of five dimensions.
 //Also, first two dimensions work for EquilFns.policy_fn.
@@ -81,9 +68,7 @@
 #define WAGE_SHOCK_STATE (CAP2_SHOCK_STATE+1)// Shocks to wages are the fourth state index
 #define AGG_SHOCK_STATE (WAGE_SHOCK_STATE+1) //Aggregate shocks are the fifth state index
 #define PHI_STATE (AGG_SHOCK_STATE + 1)
-#define AGG_ASSET_STATE (PHI_STATE+1)
-#define AGG2_ASSET_STATE (PHI_STATE+1)
-#define NUM_STATE_VARS (AGG2_ASSET_STATE+1)
+#define NUM_STATE_VARS (PHI_STATE+1)
 
 //Definitions for within "StochProc.shocks"
 #define EF_K1 0
@@ -93,19 +78,12 @@
 #define EF_PHI 4
 #define NUM_SHOCK_VARS 5
 
-
-//definitions for order of prices
-#define P_R 0
-#define AGG_ASSET_C1 1
-#define AGG_ASSET_C2 2
-#define NUM_RECURSIVE_FNS (AGG_ASSET_C2+1)
-#endif
-
 //definitions for Krusell-Smith economy simulation
 #define SSPERIODS 2500
 #define NUMPERIODS 1500
 #define TOTALPERIODS (SSPERIODS+NUMPERIODS)
-#define NUMHHS 10000
+#define NUMHHS 200000
 
 //random price
 #define NOMINAL_PRICE 2.8
+#endif

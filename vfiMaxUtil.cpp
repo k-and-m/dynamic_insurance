@@ -106,7 +106,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 		std::cout.precision(15);
 		std::cout << std::scientific;
 		std::cout << "ERROR! vfiMaxUtil.cc utility() - utility at start = " << u
-			<< ". (A,a:z1,z2)=(" << curSt->current_states[AGG_ASSET_STATE] << curSt->current_states[ASTATE] << ","
+			<< ". (A,a:z1,z2)=(" << 1 << curSt->current_states[ASTATE] << ","
 			<< curSt->current_states[CAP1_SHOCK_STATE] << ","
 			<< curSt->current_states[CAP2_SHOCK_STATE] << ")"
 			<< " k1prime=" << k1prime << " k2prime=" << k2prime
@@ -122,7 +122,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 #endif
 		std::cout << "P1:" << curSt->getTau() << std::endl
 			<< "P2:" << 1 << std::endl
-			<< "r:" << curSt->getRecursiveVal(P_R) << std::endl;
+			<< "r:" << curSt->getNextR() << std::endl;
 		exit(-1);
 	}
 
@@ -139,7 +139,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 					val[3] = 0;
 					for (int j = 0; j < WAGE_SHOCK_SIZE; j++) {
 						val[4] = j;
-						vector<vector<VecDoub>>::const_iterator tempVec = curFns.getReorderedValueFnVector(val);
+						VecDoub::const_iterator tempVec = curFns.getReorderedValueFnVector(val);
 
 						newState.current_states[CAP1_SHOCK_STATE] =
 							curStoch.shocks[g][h][i][ii][j][EF_K1];
@@ -151,10 +151,6 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 							curStoch.shocks[g][h][i][ii][j][EF_A];
 						newState.current_states[PHI_STATE] =
 							curStoch.shocks[g][h][i][ii][j][EF_PHI];
-						newState.current_states[AGG_ASSET_STATE] =
-							curSt->getRecursiveVal(AGG_ASSET_C1);
-						newState.current_states[AGG2_ASSET_STATE] =
-							curSt->getRecursiveVal(AGG_ASSET_C2);
 
 						newState.current_indices[CAP1_SHOCK_STATE] = i;
 						newState.current_indices[CAP2_SHOCK_STATE] = ii;
@@ -164,7 +160,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 
 						double aprime = get_wage(newState, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1prime)
 							+ (NOMINAL_PRICE * k2prime)
-							+ (curSt->getRecursiveVal(P_R)) * bprime
+							+ (curSt->getNextR()) * bprime
 							+ prod_fn(k1prime, k2prime, /*c1mgmt,*/ newState, curStoch);
 
 						if (aprime != aprime) {
@@ -186,12 +182,8 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 						int cap1St = curSt->current_indices[CAP1_SHOCK_STATE];
 						int cap2St = curSt->current_indices[CAP2_SHOCK_STATE];
 						int wgSt = curSt->current_indices[WAGE_SHOCK_STATE];
-						double agg1 = newState.current_states[AGG_ASSET_STATE];
-						double agg2 = newState.current_states[AGG2_ASSET_STATE];
 
-						double intp = utilityFunctions::interpolate3d(curStoch.aggAssets, curStoch.aggAssets, curStoch.assets, tempVec,
-							agg1, agg2, aprime);
-//						double intp = utilityFunctions::interpolate(curStoch.assets, tempVec[0][0], aprime);
+						double intp = utilityFunctions::interpolate(curStoch.assets, tempVec, aprime);
 
 						u +=
 							BETA
@@ -206,12 +198,12 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 		std::cout.precision(15);
 		std::cout << std::scientific;
 		std::cout << "ERROR! vfiMaxUtil.cc utility() - utility at end is " << u
-			<< ". (A,a:z1,z2)=(" << curSt->current_states[AGG_ASSET_STATE] << curSt->current_states[ASTATE] << ","
+			<< ". (A,a:z1,z2)=(" << 1 << curSt->current_states[ASTATE] << ","
 			<< curSt->current_states[CAP1_SHOCK_STATE] << ","
 			<< curSt->current_states[CAP2_SHOCK_STATE] << ")"
 			<< " k1prime=" << k1prime << " k2prime=" << k2prime
 			<< " bprime=" << bprime << " consumption=" << consumption
-			<< " p1 =" << curSt->getTau() << " p2 =" << 1 << " r = " << curSt->getRecursiveVal(P_R)
+			<< " p1 =" << curSt->getTau() << " p2 =" << 1 << " r = " << curSt->getNextR()
 			<< std::endl << std::flush;
 		exit(-1);
 	}
@@ -361,7 +353,7 @@ double vfiMaxUtil::getMaxBorrow(const double k1, const double k2/*, const double
 	}
 #endif
 	double x = get_wage(newState, curStoch) + (newState.getTau() * NOMINAL_PRICE * k1) + (NOMINAL_PRICE * k2)+prod_fn(k1, k2, /*c1mgmt,*/ newState, curStoch);
-	return MAX(MIN_BONDS, MIN_ASSETS - x) / (curSt->getRecursiveVal(P_R));
+	return MAX(MIN_BONDS, MIN_ASSETS - x) / (curSt->getNextR());
 }
 
 bool vfiMaxUtil::constraintBinds() const {
@@ -377,8 +369,6 @@ bool vfiMaxUtil::constraintBinds() const {
 	int cap1St = curSt->current_indices[CAP1_SHOCK_STATE];
 	int cap2St = curSt->current_indices[CAP2_SHOCK_STATE];
 	int wageSt = curSt->current_indices[WAGE_SHOCK_STATE];
-	int f = curSt->current_indices[AGG_ASSET_STATE];
-	int ff = curSt->current_indices[AGG2_ASSET_STATE];
 
 	for (int g = 0; g < PHI_STATES; g++) {
 		for (int h = 0; h < AGG_SHOCK_SIZE; h++) {
@@ -386,15 +376,13 @@ bool vfiMaxUtil::constraintBinds() const {
 				for (int ii = 0; ii < CAP_SHOCK_SIZE; ii++) {
 					for (int j = 0; j < WAGE_SHOCK_SIZE; j++) {
 						for (int k = 0; k < 2; k++) {
-							VecInt index(8);
-							index[0] = f;
-							index[1] = ff;
-							index[2] = g;
-							index[3] = h;
-							index[4] = k;
-							index[5] = i;
-							index[6] = ii;
-							index[7] = j;
+							VecInt index(6);
+							index[0] = g;
+							index[1] = h;
+							index[2] = k;
+							index[3] = i;
+							index[4] = ii;
+							index[5] = j;
 							valueFn[k] = curFns.getValueFn(index);
 						}
 						deriv += curStoch.transition[phiSt][aggSt][cap1St][cap2St][wageSt][g][h][i][ii][j] * (valueFn[1] - valueFn[0]) / (curStoch.assets[1] - curStoch.assets[0]);
