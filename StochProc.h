@@ -13,7 +13,6 @@ public:
 
 #if ASSETSTATE
 	VecDoub assets;
-	VecDoub aggAssets;
 #else
 	double capital[CAPITAL_SIZE];
 	double bonds[BOND_SIZE];
