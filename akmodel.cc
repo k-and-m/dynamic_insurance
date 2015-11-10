@@ -5,7 +5,7 @@
  *      Author: robmrk
  */
 
-#define POLICY_ITERATION 0
+#define POLICY_ITERATION 1
 #define AMOEBA 1
 #define BFGS 0
 #define SIMULATED_ANNEALING 0
