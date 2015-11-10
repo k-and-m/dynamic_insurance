@@ -135,7 +135,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		for (int j = 0; j < PHI_STATES; j++) {
 			switch (i) {
 			case P_R:
-				recursEst[i][j][0] = 0.01502;
+				recursEst[i][j][0] = 0.01707341618;
 				recursEst[i][j][1] = 0;
 				recursEst[i][j][2] = 0;
 				break;
@@ -1035,7 +1035,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 												temp2[BSTATE - 1] = sqrt(ub.getBoundBorrow() - MIN_BONDS);
 #endif
-												minVal = ub.getBoundUtil();
+												minVal = -ub.getBoundUtil();
 											}
 											else {
 #if AMOEBA
@@ -1049,7 +1049,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 													std::cerr << "ERROR! akmodel.cc - solve(): minimize returned std::vector of size " << temp2.size() << std::endl;
 													exit(-1);
 												}
-												minVal = ((vfiMaxUtil)ub)(temp2);
+												minVal = -((vfiMaxUtil)ub)(temp2);
 #elif BFGS
 												find_min_using_approximate_derivatives(bfgs_search_strategy(),
 													objective_delta_stop_strategy(1e-7),
@@ -1086,9 +1086,11 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 												sqrt(
 													in_process_values.policy_fn[g][gg][h][i][j][0][0][m][BSTATE]
 													- MIN_BONDS);
-
+											VecInt vect2(vect);
+											vect2[3] = 0;
+											vect2[4] = 0;
 											minVal =
-												-in_process_values.getValueFn(vect);
+												in_process_values.getValueFn(vect2);
 										}
 
 										in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE] =
@@ -1106,7 +1108,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE - 1], 2);
 #endif
-										in_process_values.setValueFn(vect, MIN(-minVal, 0));
+										in_process_values.setValueFn(vect, minVal);
 										in_process_values.consumption[g][gg][h][i][j][l][ll][m] =
 											current.current_states[ASTATE]
 											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE]
