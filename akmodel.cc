@@ -1087,8 +1087,8 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 													in_process_values.policy_fn[g][gg][h][i][j][0][0][m][BSTATE]
 													- MIN_BONDS);
 											VecInt vect2(vect);
-											vect2[3] = 0;
-											vect2[4] = 0;
+											vect2[5] = 0;
+											vect2[6] = 0;
 											minVal =
 												in_process_values.getValueFn(vect2);
 										}
