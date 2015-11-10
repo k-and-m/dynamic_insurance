@@ -188,7 +188,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 						u +=
 							BETA
 							* curStoch.transition[phiSt][agSt][cap1St][cap2St][wgSt][g][h][i][ii][j]
-							* MIN(0, intp);
+							* intp;
 					}
 				}
 			}
@@ -198,6 +198,19 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 		std::cout.precision(15);
 		std::cout << std::scientific;
 		std::cout << "ERROR! vfiMaxUtil.cc utility() - utility at end is " << u
+			<< ". (A,a:z1,z2)=(" << 1 << curSt->current_states[ASTATE] << ","
+			<< curSt->current_states[CAP1_SHOCK_STATE] << ","
+			<< curSt->current_states[CAP2_SHOCK_STATE] << ")"
+			<< " k1prime=" << k1prime << " k2prime=" << k2prime
+			<< " bprime=" << bprime << " consumption=" << consumption
+			<< " p1 =" << curSt->getTau() << " p2 =" << 1 << " r = " << curSt->getNextR()
+			<< std::endl << std::flush;
+		exit(-1);
+	}
+	if (u >= 0) {
+		std::cout.precision(15);
+		std::cout << std::scientific;
+		std::cout << "ERROR! vfiMaxUtil.cc utility() - utility at end is " << u << " which is >=0"
 			<< ". (A,a:z1,z2)=(" << 1 << curSt->current_states[ASTATE] << ","
 			<< curSt->current_states[CAP1_SHOCK_STATE] << ","
 			<< curSt->current_states[CAP2_SHOCK_STATE] << ")"

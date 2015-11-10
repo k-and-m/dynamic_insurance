@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 	phi[1] = 0;
 
 	tau[0] = 1.1;
-	tau[1] = 1.01513;
+	tau[1] = 1.01722;
 	double dis = solveProblem(phi, tau, 0.3, 0);
 #endif
 	std::cout << "soln dist: " << dis << endl;
@@ -498,7 +498,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 										- MIN_BONDS);
 								VecDoub_I initial_point(temp1);
 								VecDoub temp2;
-								double minVal = 0;
+								double minVal = 2;
 								if (l == 0 && ll == 0) {
 									if (ub.constraintBinds()) {
 #if K2CHOICE
@@ -513,7 +513,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 										temp2[BSTATE - 1] = sqrt(ub.getBoundBorrow() - MIN_BONDS);
 #endif
-										minVal = ub.getBoundUtil();
+										minVal = -ub.getBoundUtil();
 									}
 									else {
 #if AMOEBA
@@ -527,7 +527,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 											std::cerr << "ERROR! akmodel.cc - solve(): minimize returned std::vector of size " << temp2.size() << std::endl;
 											exit(-1);
 										}
-										minVal = ((vfiMaxUtil)ub)(temp2);
+										minVal = -((vfiMaxUtil)ub)(temp2);
 #elif BFGS
 										find_min_using_approximate_derivatives(bfgs_search_strategy(),
 											objective_delta_stop_strategy(1e-7),
@@ -565,8 +565,11 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 											in_process_values.policy_fn[h][i][j][0][0][m][BSTATE]
 											- MIN_BONDS);
 
+									VecInt vect2(vect);
+									vect2[3] = 0;
+									vect2[4] = 0;
 									minVal =
-										-in_process_values.getValueFn(vect);
+										in_process_values.getValueFn(vect2);
 								}
 
 								in_process_values.policy_fn[h][i][j][l][ll][m][K1STATE] =
@@ -584,7 +587,8 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 									MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE - 1], 2);
 #endif
-								in_process_values.setValueFn(vect, MIN(-minVal, 0));
+								in_process_values.setValueFn(vect, minVal);
+								//std::cout << h << ":" << i << ":" << j << ":" << l << ":" << ll << ":" << m << "=" << minVal << std::endl;
 								in_process_values.consumption[h][i][j][l][ll][m] =
 									current.current_states[ASTATE]
 									- in_process_values.policy_fn[h][i][j][l][ll][m][K1STATE]
@@ -767,7 +771,7 @@ int policy_iteration(double difference, State& current, const StochProc& stoch,
 								vect[4] = ll;
 								vect[5] = m;
 								if (count == (max_iterations - 2)) {
-									//oldValue.setValueFn(vect, temp.getValueFn(vect));
+									oldValue.setValueFn(vect, temp.getValueFn(vect));
 								}
 								latestValue.setValueFn(vect, temp.getValueFn(vect));
 							}
