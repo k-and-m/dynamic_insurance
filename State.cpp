@@ -1,37 +1,59 @@
 #include "State.h"
 
-State::State(){
+State::State() : coefficients(NUM_RECURSIVE_FNS, PHI_STATES, 3) {
 	phi = VecDoub(PHI_STATES);
 	for (int i = 0; i < PHI_STATES; i++) {
 		phi[i] = 1;
 	}
 
-	prices = VecDoub(2);
+	prices = VecDoub(1);
 	prices[0] = 1;
-	prices[1] = 1;
 
 	current_states = VecDoub(NUM_STATE_VARS); //capital and bonds
 	current_indices = VecInt(NUM_STATE_VARS);
+
+	for (int i = 0; i < NUM_RECURSIVE_FNS; i++){
+		for (int j = 0; j < PHI_STATES; j++){
+			coefficients[i][j][0] = 0;
+			coefficients[i][j][1] = 1;
+			coefficients[i][j][2] = 0;
+		}
+	}
 }
 
-State::State(const VecDoub& phi1, const VecDoub& p_prices) : phi(phi1),prices(p_prices) {
+State::State(const VecDoub& phi1, const VecDoub& p_prices, const Mat3Doub& recursEst) : phi(phi1),prices(p_prices), coefficients(NUM_RECURSIVE_FNS, PHI_STATES, 3) {
 	if (phi1.size() != PHI_STATES){
 		std::cerr << "State(VecDoub,VecDoub): phi has different dimension than number of states" << std::endl;
 		exit(-1);
 	}
 
-	if (prices.size() != 2){
-		std::cerr << "State(VecDoub,VecDoub): expect 2 prices, received " << prices.size() << std::endl;
+	if (prices.size() != 1){
+		std::cerr << "State(VecDoub,VecDoub): only expect 1 price" << std::endl;
 		exit(-1);
 	}
 
 	current_states = VecDoub(NUM_STATE_VARS); //capital and bonds
 	current_indices = VecInt(NUM_STATE_VARS);
+
+	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
+		for (int j = 0; j < PHI_STATES; j++) {
+			coefficients[i][j][0] = recursEst[i][j][0];
+			coefficients[i][j][1] = recursEst[i][j][1];
+			coefficients[i][j][2] = recursEst[i][j][2];
+		}
+	}
 }
 
-State::State(const State& orig) : phi(orig.phi), prices(orig.prices){
+State::State(const State& orig) : phi(orig.phi), prices(orig.prices), coefficients(NUM_RECURSIVE_FNS, PHI_STATES, 3) {
 	current_states = VecDoub(orig.current_states); //capital and bonds
 	current_indices = VecInt(orig.current_indices);
+	for (int i = 0; i < NUM_RECURSIVE_FNS; i++){
+		for (int j = 0; j < PHI_STATES; j++){
+			coefficients[i][j][0] = orig.coefficients[i][j][0];
+			coefficients[i][j][1] = orig.coefficients[i][j][1];
+			coefficients[i][j][2] = orig.coefficients[i][j][2];
+		}
+	}
 }
 
 State& State::operator=(const State& fnSource) {
@@ -39,11 +61,24 @@ State& State::operator=(const State& fnSource) {
 	current_indices = fnSource.current_indices;
 	phi = fnSource.phi;
 	prices = fnSource.prices;
+	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
+		for (int j = 0; j < PHI_STATES; j++){
+			coefficients[i][j][0] = fnSource.coefficients[i][j][0];
+			coefficients[i][j][1] = fnSource.coefficients[i][j][1];
+			coefficients[i][j][2] = fnSource.coefficients[i][j][2];
+		}
+	}
 	return *this;
 }
 
-double State::getNextR() const{
-	return prices[1];
+double State::getRecursiveVal(int whichVal) const{
+	int phiState = current_indices[PHI_STATE];
+	double value = exp(coefficients[whichVal][phiState][0] + coefficients[whichVal][phiState][1] * log(current_states[AGG_ASSET_STATE]) + coefficients[whichVal][phiState][2] * log(current_states[AGG2_ASSET_STATE]));
+	return (whichVal == P_R) ? MAX(MIN(value, 1 + (1 - BETA)), 1) : value;
+}
+
+double State::getNextR(double a1, double a2, int phi_state) const{
+	return exp(coefficients[P_R][phi_state][0] + coefficients[P_R][phi_state][1] * log(a1) + coefficients[P_R][phi_state][2] * log(a2));
 }
 
 double State::getTau() const{
@@ -63,10 +98,15 @@ void State::defaultInitialState(StochProc& stoch2){
 		stoch2.shocks[0][0][0][0][0][EF_A];
 	 current_states[PHI_STATE] =
 		stoch2.shocks[0][0][0][0][0][EF_PHI];
+	 current_states[AGG_ASSET_STATE] = stoch2.aggAssets[AGG_ASSET_SIZE / 2];
+	 current_states[AGG2_ASSET_STATE] = stoch2.aggAssets[AGG_ASSET_SIZE / 2];
+
 	 current_indices[ASTATE] = ASSET_SIZE / 2;
 	 current_indices[CAP1_SHOCK_STATE] = 0;
 	 current_indices[CAP2_SHOCK_STATE] = 0;
 	 current_indices[WAGE_SHOCK_STATE] = 0;
 	 current_indices[AGG_SHOCK_STATE] = 0;
 	 current_indices[PHI_STATE] = 0;
+	 current_indices[AGG_ASSET_STATE] = AGG_ASSET_SIZE / 2;
+	 current_indices[AGG2_ASSET_STATE] = AGG_ASSET_SIZE / 2;
 }
