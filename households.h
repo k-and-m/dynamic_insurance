@@ -44,8 +44,8 @@ protected:
 	mt19937 gener;
 
 private:
-	vector<vector<vector<vector<vector<vector<VecDoub>>>>>>& getReformPolicyFn();
-	static vector<vector<vector<vector<vector<vector<VecDoub>>>>>>& refPolInit(const EquilFns *param, bool reset=false);
+	vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& getReformPolicyFn();
+	static vector<vector<vector<vector<vector<vector<vector<vector<VecDoub>>>>>>>>& refPolInit(const EquilFns *param, bool reset=false);
 };
 
 #endif /* HOUSEHOLDS_H_ */

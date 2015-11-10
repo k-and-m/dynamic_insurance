@@ -21,6 +21,7 @@ StochProc::StochProc(const StochProc& init){
 	}
 
 	assets.resize(ASSET_SIZE);
+	aggAssets.resize(AGG_ASSET_SIZE);
 	transition.resize(PHI_STATES);
 	cdf.resize(PHI_STATES);
 	shocks.resize(PHI_STATES);
@@ -80,6 +81,11 @@ StochProc::StochProc(const StochProc& init){
 	for (int i = 0; i < ASSET_SIZE; i++) {
 		assets[i] = init.assets[i];
 	}
+
+	for (int i = 0; i < AGG_ASSET_SIZE; i++) {
+		aggAssets[i] = init.aggAssets[i];
+	}
+
 }
 
 StochProc::StochProc(VecDoub phis) {
@@ -132,6 +138,7 @@ StochProc::StochProc(VecDoub phis) {
 	}
 
 	assets.resize(ASSET_SIZE);
+	aggAssets.resize(AGG_ASSET_SIZE);
 	transition.resize(PHI_STATES);
 	cdf.resize(PHI_STATES);
 	shocks.resize(PHI_STATES);
@@ -163,6 +170,16 @@ StochProc::StochProc(VecDoub phis) {
 		assets[i] = 1.0 / (ASSET_SIZE - 1) * i;
 		assets[i] = pow(assets[i], CURVATURE);
 		assets[i] = assets[i] * (MAX_ASSETS - MIN_ASSETS) + MIN_ASSETS;
+	}
+
+	for (int i = 0; i < AGG_ASSET_SIZE; i++) {
+		if (AGG_ASSET_SIZE == 1){
+			aggAssets[0] = (MAX_AGG_ASSETS + MIN_AGG_ASSETS) / 2;
+		}else{
+			aggAssets[i] = 1.0 / (MAX(1,AGG_ASSET_SIZE - 1)) * i;
+			aggAssets[i] = pow(aggAssets[i], AGG_CURVATURE);
+			aggAssets[i] = aggAssets[i] * (MAX_AGG_ASSETS - MIN_AGG_ASSETS) + MIN_AGG_ASSETS;
+		}
 	}
 
 	for (int h = 0; h < PHI_STATES; h++) {
@@ -372,6 +389,7 @@ StochProc& StochProc::operator=(const StochProc& init) {
 	}
 
 	assets.resize(ASSET_SIZE);
+	aggAssets.resize(AGG_ASSET_SIZE);
 	transition.resize(PHI_STATES);
 	cdf.resize(PHI_STATES);
 	shocks.resize(PHI_STATES);
@@ -430,6 +448,9 @@ StochProc& StochProc::operator=(const StochProc& init) {
 
 	for (int i = 0; i < ASSET_SIZE; i++) {
 		assets[i] = init.assets[i];
+	}
+	for (int i = 0; i < AGG_ASSET_SIZE; i++) {
+		aggAssets[i] = init.aggAssets[i];
 	}
 	return *this;
 }

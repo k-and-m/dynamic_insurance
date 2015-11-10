@@ -17,7 +17,7 @@ public:
 	WorldEconomy(int p_numCountries, int currentState);
 	~WorldEconomy();
 	void initialize(int whichCountry, const EquilFns &pol, const StochProc& proc, const State& p_currentState);
-	double netBonds();
+	//double distance(VecDoub targets);
 	void printEconomies();
 	void simulateToSS();
 	void simulateNPeriods(int n);
