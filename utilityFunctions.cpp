@@ -105,40 +105,6 @@ namespace utilityFunctions{
 		return interp_val;
 	}
 
-	double interpolate2d(const VecDoub &x1, const VecDoub &x2, const vector<VecDoub>::const_iterator y, double x1_prime, double x2_prime) {
-		using namespace std;
-
-		if (AGG_ASSET_SIZE == 1){
-			return interpolate(x2, y[0].begin(), x2_prime);
-		}
-
-		VecDoub int1(AGG_ASSET_SIZE);
-
-		for (int i = 0; i < AGG_ASSET_SIZE; i++){
-			int1[i] = interpolate(x2, y[i].begin(), x2_prime);
-		}
-
-		double interp_val = interpolate(x1, int1.begin(), x1_prime);
-		return interp_val;
-	}
-
-	double interpolate3d(const VecDoub &x1, const VecDoub &x2, const VecDoub &x3, const vector<vector<VecDoub>>::const_iterator y, double x1_prime, double x2_prime, double x3_prime){
-		using namespace std;
-
-		if (AGG_ASSET_SIZE == 1){
-			return interpolate2d(x2, x3, y[0].begin(), x2_prime, x3_prime);
-		}
-
-		VecDoub int1(AGG_ASSET_SIZE);
-
-		for (int i = 0; i < AGG_ASSET_SIZE; i++){
-			int1[i] = interpolate2d(x2, x3, y[i].begin(), x2_prime, x3_prime);
-		}
-
-		double interp_val = interpolate(x1, int1.begin(), x1_prime);
-		return interp_val;
-	}
-
 	std::string tostr(double t) {
 		std::ostringstream os;
 		os << t;
