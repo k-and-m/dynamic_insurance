@@ -169,6 +169,29 @@ int EquilFns::policyToArray(double *toAlloc) const {
 	return counter;
 }
 
+int EquilFns::valueToArray(double *toAlloc) const {
+	int counter = 0;
+	for (int f = 0; f < AGG_ASSET_SIZE; f++) {
+		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+			for (int h = 0; h < PHI_STATES; h++) {
+				for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
+					for (int ii = 0; ii < ASSET_SIZE; ii++) {
+						for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
+							for (int ll = 0; ll < CAP_SHOCK_SIZE; ll++) {
+								for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
+										toAlloc[counter] = value_fn[f][g][h][i][ii][l][ll][m];
+										counter++;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return counter;
+}
+
 void EquilFns::setPolicyFromArray(double *values) {
 	int counter = 0;
 	for (int f = 0; f < AGG_ASSET_SIZE; f++) {
@@ -191,10 +214,39 @@ void EquilFns::setPolicyFromArray(double *values) {
 			}
 		}
 	}
-
-
 }
 
+void EquilFns::setValueFromArray(double *values) {
+	int counter = 0;
+	for (int f = 0; f < AGG_ASSET_SIZE; f++) {
+		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+			for (int h = 0; h < PHI_STATES; h++) {
+				for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
+					for (int ii = 0; ii < ASSET_SIZE; ii++) {
+						for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
+							for (int ll = 0; ll < CAP_SHOCK_SIZE; ll++) {
+								for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
+										VecInt param(8);
+										param[0] = f;
+										param[1] = g;
+										param[2] = h;
+										param[3] = i;
+										param[4] = ii;
+										param[5] = l;
+										param[6] = ll;
+										param[7] = m;
+
+										setValueFn(param, values[counter]);
+										counter++;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 
 vector<vector<VecDoub>>::const_iterator EquilFns::getReorderedValueFnVector(VecInt_I param) const{

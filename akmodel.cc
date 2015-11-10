@@ -42,6 +42,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	const EquilFns& policies2, const StochProc& stoch2, const State& curSt2, const double c1target,
 	VecDoub& r_squared);
 void printResults(const EquilFns& e, const Mat3Doub& betas, const VecDoub& phis, const COUNTRYID whichCountry);
+void readSimpleResults(EquilFns& e, COUNTRYID whichCountry);
 void readResults(EquilFns& e, Mat3Doub& betas, COUNTRYID whichCountry);
 void initialize(EquilFns& fns, const VecDoub& phis);
 void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst, const COUNTRYID whichCountry);
@@ -53,18 +54,15 @@ double maxPolicyDistance(const EquilFns &a, const EquilFns &b,
 double solveProblem(const VecDoub& phis, const VecDoub& prices, double c1prop, int seqNo);
 
 #if 1
-bool readPolicy = false;
 
 int main(int argc, char *argv[]) {
 	using namespace std;
 #if USE_MPI
-        std::cout<<"init"<<std::endl<<std::flush;
-        MPI_Init(&argc, &argv);
-        std::cout<<"init done"<<std::endl<<std::flush;
+	std::cout << "init" << std::endl << std::flush;
+	MPI_Init(&argc, &argv);
+	std::cout << "init done" << std::endl << std::flush;
 #endif
 
-	readPolicy = (argc==2);
-	std::cout << readPolicy << std::endl;
 	if (argc != 7) {
 		std::cout << "Incorrect number of arguments. Require: c1phiL c1phiH c2phiL c2phiH tau seqNo" << endl;
 		//				exit(-1);
@@ -137,9 +135,9 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		for (int j = 0; j < PHI_STATES; j++) {
 			switch (i) {
 			case P_R:
-				recursEst[i][j][0] = 0.004;
-				recursEst[i][j][1] = -0.01;
-				recursEst[i][j][2] = -0.01;
+				recursEst[i][j][0] = 0.01502;
+				recursEst[i][j][1] = 0;
+				recursEst[i][j][2] = 0;
 				break;
 			case AGG_ASSET_C1:
 				recursEst[i][j][0] = 0;
@@ -160,7 +158,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 	}
 
 	double avgDist = 0;
-	for (int loopC = 0; (loopC < 200) && (avgDist<0.99); loopC++) {
+	for (int loopC = 0; (loopC < 200) && (avgDist < 0.99); loopC++) {
 
 		EquilFns orig1, final1;
 		EquilFns orig2, final2;
@@ -172,6 +170,9 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 
 		StochProc stoch1(myphis);
 		initialize(orig1, myphis);
+		if (utilityFunctions::fileExists("policy_simple_0.dat")) {
+			readSimpleResults(orig1, C1);
+		}
 		if (utilityFunctions::fileExists("policy_0.dat")) {
 			readResults(orig1, recursEst, C1);
 		}
@@ -189,6 +190,9 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		State current2(myphis, tau, recursEst);
 		current2.defaultInitialState(stoch2);
 		initialize(orig2, myphis);
+		if (utilityFunctions::fileExists("policy_simple_1.dat")) {
+			readSimpleResults(orig1, C2);
+		}
 		if (utilityFunctions::fileExists("policy_1.dat")) {
 			readResults(orig2, recursEst, C2);
 		}
@@ -210,7 +214,8 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		bool updateR = non_r_R2 > 0.95;
 		if (updateR) {
 			std::cout << "Updating R estimate: " << non_r_R2 << std::endl;
-		}else{
+		}
+		else {
 			std::cout << "Skipping R update" << std::endl;
 		}
 		for (int dim1 = 0; dim1 < xres.dim1(); dim1++) {
@@ -358,8 +363,8 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 				tempRHS = (i == P_R) ? goodRHS : goodRHS.middleCols(0, 3);
 				tempLHS = goodLHS[i];
 			}
-//			VectorXd temp = (tempRHS.transpose() * tempRHS).ldlt().solve(tempRHS.transpose() * tempLHS);
-//			VectorXd temp = tempRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(tempLHS);
+			//			VectorXd temp = (tempRHS.transpose() * tempRHS).ldlt().solve(tempRHS.transpose() * tempLHS);
+			//			VectorXd temp = tempRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(tempLHS);
 			VectorXd temp = (tempRHS.transpose()*tempRHS).inverse()*tempRHS.transpose()*tempLHS;
 			std::cout << "Betas (" << i << "," << j << ")" << temp << std::endl;
 			if (i == P_R) {
@@ -380,14 +385,14 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 		exit(-1);
 	}
 	for (int i = 0; i < newGoodRs.size(); i++) {
-		newGoodRs[i] = goodRHS(i,3) - goodLHS[0][i] / bondBetas[1][3];
+		newGoodRs[i] = goodRHS(i, 3) - goodLHS[0][i] / bondBetas[1][3];
 	}
 	if (abs(bondBetas[0][3]) < 0.0001) {
 		std::cerr << "ERROR! akmodel.cc-getNextParameter(): badNBs have almost zero alpha on R: " << bondBetas[0][3] << std::endl;
 		exit(-1);
 	}
 	for (int i = 0; i < newBadRs.size(); i++) {
-		newBadRs[i] = badRHS(i,3) - badLHS[0][i] / bondBetas[0][3];
+		newBadRs[i] = badRHS(i, 3) - badLHS[0][i] / bondBetas[0][3];
 	}
 	goodLHS[P_R] = newGoodRs;
 	badLHS[P_R] = newBadRs;
@@ -408,17 +413,17 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 	}
 	badRHS = tempRHS2;
 
-//	VectorXd tempBetas =(badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS[P_R]);
-//	VectorXd tempBetas = badRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(badLHS[P_R]);
-//	VectorXd tempBetas = badRHS.fullPivHouseholderQr().solve(badLHS[P_R]);
+	//	VectorXd tempBetas =(badRHS.transpose() * badRHS).ldlt().solve(badRHS.transpose() * badLHS[P_R]);
+	//	VectorXd tempBetas = badRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(badLHS[P_R]);
+	//	VectorXd tempBetas = badRHS.fullPivHouseholderQr().solve(badLHS[P_R]);
 	VectorXd tempBetas = (badRHS.transpose()*badRHS).inverse()*badRHS.transpose()*badLHS[P_R];
 	for (int i = 0; i < 3; i++) {
 		results[P_R][0][i] = tempBetas[i];
 	}
 
-//	tempBetas = (goodRHS.transpose() * goodRHS).ldlt().solve(goodRHS.transpose() * goodLHS[P_R]);
-//	tempBetas = goodRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(goodLHS[P_R]);
-//	tempBetas = goodRHS.fullPivHouseholderQr().solve(goodLHS[P_R]);
+	//	tempBetas = (goodRHS.transpose() * goodRHS).ldlt().solve(goodRHS.transpose() * goodLHS[P_R]);
+	//	tempBetas = goodRHS.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(goodLHS[P_R]);
+	//	tempBetas = goodRHS.fullPivHouseholderQr().solve(goodLHS[P_R]);
 	tempBetas = (goodRHS.transpose()*goodRHS).inverse()*goodRHS.transpose()*goodLHS[P_R];
 	for (int i = 0; i < 3; i++) {
 		results[P_R][1][i] = tempBetas[i];
@@ -450,7 +455,7 @@ Mat3Doub getNextParameters(const EquilFns& policies1, const StochProc& stoch1, c
 			MatrixXd tempRHS = (hh == 0) ? badRHS : goodRHS;
 			int NUMROWS = tempLHS.rows();
 			for (int i = 0; i < NUMROWS; i++) {
-				if (tempRHS(i,0) != 1) {
+				if (tempRHS(i, 0) != 1) {
 					std::cerr << "ERROR! akmodel.cc-getNextParameter(): tempRHS[" << i << ",0]!=1. Why not?" << std::endl;
 					exit(-1);
 				}
@@ -493,7 +498,7 @@ std::vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochP
 	std::vector<VecDoub> hist = we.getHistory();
 	int numGoodStates = 0;
 	int numBadStates = 0;
-	for (int i = 0; i < NUMPERIODS-1; i++) {
+	for (int i = 0; i < NUMPERIODS - 1; i++) {
 		if (hist[i + SSPERIODS][2] == 1) {
 			numGoodStates++;
 		}
@@ -506,7 +511,7 @@ std::vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochP
 
 	int currentGood = 0;
 	int currentBad = 0;
-	for (int i = 0; i < NUMPERIODS-1; i++) {
+	for (int i = 0; i < NUMPERIODS - 1; i++) {
 		if (hist[i + SSPERIODS][2] == 0) {
 			if (currentBad > numBadStates) {
 				std::cerr << "At bad state " << currentBad << " but only expect " << numBadStates;
@@ -531,7 +536,7 @@ std::vector<MatrixXd> simulate(int numC, const EquilFns& policies1, const StochP
 			mydata[1](currentGood, 3) = hist[i + SSPERIODS][3];
 			for (int j = 0; j < numC; j++) {
 				mydata[1](currentGood, j + 1) = hist[i + SSPERIODS][j];
-				mydata[1](currentGood, j + 4) = hist[i + SSPERIODS+1][j];
+				mydata[1](currentGood, j + 4) = hist[i + SSPERIODS + 1][j];
 			}
 			mydata[1](currentGood, 6) = hist[i + SSPERIODS][4];
 			currentGood++;
@@ -557,7 +562,7 @@ void printResults(const EquilFns& e, const Mat3Doub& betas, const VecDoub& phis,
 				if (dim3 > 0) {
 					out_stream << ",";
 				}
-				out_stream<<betas[dim1][dim2][dim3];
+				out_stream << betas[dim1][dim2][dim3];
 			}
 			out_stream << std::endl;
 		}
@@ -642,7 +647,7 @@ void printResults(const EquilFns& e, const Mat3Doub& betas, const VecDoub& phis,
 										<< e.consumption[f][g][h][i][j][l][ll][m] << ","
 										<< e.policy_fn[f][g][h][i][j][l][ll][m][K1STATE] << ","
 										<< e.policy_fn[f][g][h][i][j][l][ll][m][K2STATE] << ","
-										<< e.policy_fn[f][g][h][i][j][l][ll][m][BSTATE] 
+										<< e.policy_fn[f][g][h][i][j][l][ll][m][BSTATE]
 										<< endl;
 #endif
 								}
@@ -656,13 +661,91 @@ void printResults(const EquilFns& e, const Mat3Doub& betas, const VecDoub& phis,
 	out_stream.close();
 }
 
+void readSimpleResults(EquilFns& e, COUNTRYID whichCountry) {
+	using namespace std;
+
+	FILE *fp = NULL;
+	if (whichCountry == C1) {
+		fp = std::fopen("policy_simple_0.dat", "r");
+	}
+	else {
+		fp = std::fopen("policy_simple_1.dat", "r");
+	}
+
+	{
+		double temp = 0;
+		if (fscanf(fp, "%lf", &temp) == 1) {
+		}
+		else {
+			std::cerr << " ERROR! akmodel.cc-readSimpleResults(): could not read expected phi " << std::endl;
+			std::fclose(fp);
+			exit(-1);
+		}
+	}
+	{
+		double temp1 = 0, temp2 = 0;
+		if (fscanf(fp, "%lf, %lf", &temp1, &temp2) == 2) {
+		}
+		else {
+			std::cerr << " ERROR! akmodel.cc-readSimpleResults(): could not read capital shocks " << std::endl;
+			std::fclose(fp);
+			exit(-1);
+		}
+	}
+	{
+		double temp1 = 0, temp2 = 0;
+		if (fscanf(fp, "%lf, %lf", &temp1, &temp2) == 2) {
+		}
+		else {
+			std::cerr << " ERROR! akmodel.cc-readSimpleResults(): could not read wage shocks " << std::endl;
+			std::fclose(fp);
+			exit(-1);
+		}
+	}
+
+	int phi, aggShock, z1, z2, wage, a;
+	double valuefn, cons, k1p, k2p, bp;
+
+	if (1) {
+		char str[256];
+		fscanf(fp, "%s", str);
+	}
+	while (fscanf(fp, "%d, %d, %d, %d, %d, %d, %lf, %lf, %lf, %lf, %lf",
+		&phi, &aggShock, &z1, &z2, &wage, &a, &valuefn, &cons, &k1p, &k2p, &bp) == 11) {
+
+		VecInt index(8);
+		for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
+			for (int j = 0; j < AGG_SHOCK_SIZE; j++) {
+				for (int k = 0; k < PHI_STATES; k++) {
+					index[0] = i;
+					index[1] = j;
+					index[2] = k;
+					index[3] = aggShock;
+					index[4] = a;
+					index[5] = z1;
+					index[6] = z2;
+					index[7] = wage;
+
+					e.setValueFn(index, valuefn);
+					e.consumption[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]] = cons;
+					e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = k1p;
+					e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K2STATE] = k2p;
+					e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][BSTATE] = bp;
+				}
+			}
+		}
+	}
+	fclose(fp);
+}
+
 void readResults(EquilFns& e, Mat3Doub& betas, COUNTRYID whichCountry) {
 	using namespace std;
 
 	FILE *fp = NULL;
 	if (whichCountry == C1) {
 		fp = std::fopen("policy_0.dat", "r");
-	}else{
+	}
+	else {
 		fp = std::fopen("policy_1.dat", "r");
 	}
 
@@ -729,10 +812,10 @@ void readResults(EquilFns& e, Mat3Doub& betas, COUNTRYID whichCountry) {
 
 	if (1) {
 		char str[256];
-		fscanf(fp,"%s", str);
+		fscanf(fp, "%s", str);
 	}
-	while (fscanf(fp, "%d, %d, %d, %d, %d, %d, %d, %d, %lf, %lf, %lf, %lf, %lf", 
-				       &a1,&a2,&phi,&aggShock,&z1,&z2,&wage,&a,&valuefn,&cons,&k1p,&k2p,&bp) == 13) {
+	while (fscanf(fp, "%d, %d, %d, %d, %d, %d, %d, %d, %lf, %lf, %lf, %lf, %lf",
+		&a1, &a2, &phi, &aggShock, &z1, &z2, &wage, &a, &valuefn, &cons, &k1p, &k2p, &bp) == 13) {
 
 		VecInt index(8);
 
@@ -746,7 +829,7 @@ void readResults(EquilFns& e, Mat3Doub& betas, COUNTRYID whichCountry) {
 		index[7] = wage;
 
 		e.setValueFn(index, valuefn);
-		e.consumption[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]]=cons;
+		e.consumption[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]] = cons;
 		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K1STATE] = k1p;
 		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][K2STATE] = k2p;
 		e.policy_fn[index[0]][index[1]][index[2]][index[3]][index[4]][index[5]][index[6]][index[7]][BSTATE] = bp;
@@ -803,12 +886,12 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 
 #if USE_MPI
 	int numprocs, rank, namelen;
-        static int firstCall = 0;
+	static int firstCall = 0;
 
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-        std::cout<<"numprocs:"<<numprocs<<std::endl<<std::flush;
+	std::cout << "numprocs:" << numprocs << std::endl << std::flush;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        std::cout<<"rank:"<<rank<<std::endl<<std::flush;
+	std::cout << "rank:" << rank << std::endl << std::flush;
 #endif
 
 	EquilFns last_values;
@@ -820,7 +903,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 
 	last_values = orig;
 
-	while (counter < MAX_ITER && diff > VAL_TOL) { 
+	while (counter < MAX_ITER && diff > VAL_TOL) {
 
 		counter++;
 		EquilFns in_process_values;
@@ -839,20 +922,26 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 
 
 		int SIZE = AGG_ASSET_SIZE*AGG_ASSET_SIZE*PHI_STATES*AGG_SHOCK_SIZE*ASSET_SIZE*CAP_SHOCK_SIZE*CAP_SHOCK_SIZE*WAGE_SHOCK_SIZE*NUM_CHOICE_VARS;
+		int SIZE2 = AGG_ASSET_SIZE*AGG_ASSET_SIZE*PHI_STATES*AGG_SHOCK_SIZE*ASSET_SIZE*CAP_SHOCK_SIZE*CAP_SHOCK_SIZE*WAGE_SHOCK_SIZE;
 		double *policyArray = new double[SIZE];
-                if(rank==0){
-		   last_values.policyToArray(policyArray);
-                }
+		double *valueArray = new double[SIZE2];
+		if (rank == 0) {
+			last_values.policyToArray(policyArray);
+			last_values.valueToArray(valueArray);
+		}
 		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Bcast(policyArray, SIZE, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Bcast(valueArray, SIZE2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 		if (rank != 0) {
-                	std::cout<<rank<<" set"<<std::endl<<std::flush;
+			std::cout << rank << " set" << std::endl << std::flush;
 			last_values.setPolicyFromArray(policyArray);
+			last_values.setValueFromArray(valueArray);
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
 
 		for (int g = mystart; g < myend; g++) {
-                   std::cout<<rank<<":"<<g<<std::endl<<std::flush;
+			std::cout << rank << ":" << g << std::endl << std::flush;
 #if OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(8)
 #endif
@@ -992,7 +1081,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 													- MIN_CAPITAL);
 											temp2[BSTATE] =
 #else
-											temp2[BSTATE-1]=
+											temp2[BSTATE - 1] =
 #endif
 												sqrt(
 													in_process_values.policy_fn[g][gg][h][i][j][0][0][m][BSTATE]
@@ -1008,16 +1097,16 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #if K2CHOICE
 											MIN_CAPITAL + utilityFunctions::integer_power(temp2[K2STATE], 2);
 #else
-											in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE] 
-											* pow(prices[0],1/(1-ALPHA1));
+											in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE]
+											* pow(prices[0], 1 / (1 - ALPHA1));
 #endif
 										in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE] =
 #if K2CHOICE
 											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE], 2);
 #else
-											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE-1], 2);
+											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE - 1], 2);
 #endif
-										in_process_values.setValueFn(vect, MIN(-minVal,0));
+										in_process_values.setValueFn(vect, MIN(-minVal, 0));
 										in_process_values.consumption[g][gg][h][i][j][l][ll][m] =
 											current.current_states[ASTATE]
 											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE]
@@ -1033,16 +1122,45 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 		}
 #if USE_MPI
 		in_process_values.policyToArray(policyArray);
+		in_process_values.valueToArray(valueArray);
 		double *combinedPolicy = new double[SIZE];
+		double *combinedValue = new double[SIZE2];
 		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Reduce(policyArray, combinedPolicy, SIZE, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-		delete [] policyArray;
-                policyArray=NULL;
-		if(rank==0){
+		delete[] policyArray;
+		policyArray = NULL;
+		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Reduce(valueArray, combinedValue, SIZE2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		delete[] valueArray;
+		valueArray = NULL;
+		if (rank == 0) {
 			in_process_values.setPolicyFromArray(combinedPolicy);
+			in_process_values.setValueFromArray(combinedValue);
 #else
 		{
 #endif
+			for (int f = 0; f < AGG_ASSET_SIZE; f++) {
+				for (int g = 0; g < AGG_ASSET_SIZE; g++) {
+					for (int h = 0; h < PHI_STATES; h++) {
+						for (int i = 0; i < AGG_SHOCK_SIZE; i++) {
+							for (int ii = 0; ii < ASSET_SIZE; ii++) {
+								for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
+									for (int ll = 0; ll < CAP_SHOCK_SIZE; ll++) {
+										for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
+											in_process_values.consumption[f][g][h][i][ii][l][ll][m] =
+												stoch.assets[ii]
+												- in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][K1STATE]
+												- in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][K2STATE]
+												- in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][BSTATE];
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
 			VecInt location1 = VecInt(NUM_STATE_VARS);
 			VecInt location2 = VecInt(NUM_STATE_VARS);
 #if	POLICY_CONVERGENCE
@@ -1077,8 +1195,13 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 		}
 
 		last_values = in_process_values;
-
 		printResults(last_values, recEst, phis, whichCountry);
+
+		delete[] combinedPolicy;
+		delete[] combinedValue;
+		combinedPolicy = NULL;
+		combinedValue = NULL;
+
 	}
 
 	final = last_values;
@@ -1161,14 +1284,14 @@ int policy_iteration(double difference, State& current, const StochProc& stoch,
 #if K2CHOICE
 										VecDoub policy = VecDoub(NUM_CHOICE_VARS);
 #else
-										VecDoub policy = VecDoub(NUM_CHOICE_VARS-1);
+										VecDoub policy = VecDoub(NUM_CHOICE_VARS - 1);
 #endif
 										policy[K1STATE] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE];
 #if K2CHOICE
 										policy[K2STATE] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE];
 										policy[BSTATE] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE];
 #else
-										policy[BSTATE-1] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE];
+										policy[BSTATE - 1] = altPol.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE];
 #endif
 										VecInt vect(8);
 										vect[0] = g;

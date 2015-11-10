@@ -162,10 +162,10 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 						newState.current_indices[AGG_SHOCK_STATE] = h;
 						newState.current_indices[PHI_STATE] = g;
 
-						double aprime = get_wage(newState, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1prime)
+						double aprime = MAX(get_wage(newState, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1prime)
 							+ (NOMINAL_PRICE * k2prime)
 							+ (curSt->getRecursiveVal(P_R)) * bprime
-							+ prod_fn(k1prime, k2prime, /*c1mgmt,*/ newState, curStoch);
+							+ prod_fn(k1prime, k2prime, /*c1mgmt,*/ newState, curStoch),MIN_ASSETS+0.0000001);
 
 						if (aprime != aprime) {
 							std::cout.precision(15);
@@ -196,7 +196,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 						u +=
 							BETA
 							* curStoch.transition[phiSt][agSt][cap1St][cap2St][wgSt][g][h][i][ii][j]
-							* MIN(0, intp);
+							* MIN(consUtil(aprime), intp);
 					}
 				}
 			}

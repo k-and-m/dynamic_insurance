@@ -14,7 +14,7 @@
 
 #define AGG_ASSET_SIZE 20
 #define MAX_AGG_ASSETS 10
-#define MIN_AGG_ASSETS 0.1 
+#define MIN_AGG_ASSETS 3 
 
 #define PHI_STATES 2
 
@@ -82,7 +82,7 @@
 #define AGG_SHOCK_STATE (WAGE_SHOCK_STATE+1) //Aggregate shocks are the fifth state index
 #define PHI_STATE (AGG_SHOCK_STATE + 1)
 #define AGG_ASSET_STATE (PHI_STATE+1)
-#define AGG2_ASSET_STATE (PHI_STATE+1)
+#define AGG2_ASSET_STATE (AGG_ASSET_STATE+1)
 #define NUM_STATE_VARS (AGG2_ASSET_STATE+1)
 
 //Definitions for within "StochProc.shocks"

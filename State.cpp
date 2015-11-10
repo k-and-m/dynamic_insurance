@@ -60,6 +60,7 @@ State& State::operator=(const State& fnSource) {
 	current_states = fnSource.current_states; //capital and bonds
 	current_indices = fnSource.current_indices;
 	phi = fnSource.phi;
+	prices = fnSource.prices;
 	for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 		for (int j = 0; j < PHI_STATES; j++){
 			coefficients[i][j][0] = fnSource.coefficients[i][j][0];
