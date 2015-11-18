@@ -15,7 +15,11 @@
 #include "utilityFunctions.h"
 #include "matrixIO.h"
 #include "matrix.h"
+#if 0
 #include "amoeba.h"
+#else
+#include "simplex.h"
+#endif
 #include "WorldEconomy.h"
 #include "vfiMaxUtil.h"
 #include <Eigen/Dense>
@@ -83,11 +87,11 @@ int main(int argc, char *argv[]) {
 #else 
 	VecDoub phi = VecDoub(2);
 	VecDoub tau = VecDoub(2);
-	phi[0] = 0.72;
+	phi[0] = 1;
 	phi[1] = 0;
 
 	tau[0] = 1.1;
-	tau[1] = 1.01722;
+	tau[1] = atof(argv[1]);
 	double dis = solveProblem(phi, tau, 0.3, 0);
 #endif
 	std::cout << "soln dist: " << dis << endl;
@@ -118,7 +122,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 	}
 
 	double avgDist = 10;
-	for (int loopC = 0; (loopC < 200) && (avgDist>VAL_TOL); loopC++) {
+	for (int loopC = 0; (loopC < 1) && (avgDist>VAL_TOL); loopC++) {
 
 		EquilFns orig1, final1;
 		EquilFns orig2, final2;
@@ -212,6 +216,7 @@ void printResults(const EquilFns& e, const VecDoub& phis, const COUNTRYID whichC
 	StochProc stoch(phis);
 	out_stream.open(os.str());
 
+	out_stream.precision(15);
 	for (int i = 0; i < PHI_STATES; i++) {
 		if (i == (PHI_STATES - 1)) {
 			out_stream << phis[i] << std::endl;
@@ -406,7 +411,8 @@ void initialize(EquilFns& fns, const VecDoub& phis) {
 							vect[3] = l;
 							vect[4] = ll;
 							vect[5] = m;
-							fns.setValueFn(vect, vfiMaxUtil::consUtil(stoch.assets[j] - MIN_ASSETS + 0.1));
+							//fns.setValueFn(vect, vfiMaxUtil::consUtil(stoch.assets[j] - MIN_ASSETS + 0.1));
+							fns.setValueFn(vect, 0);
 						}
 					}
 				}
@@ -443,7 +449,9 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 					State current(phis, prices);
 					vfiMaxUtil ub = vfiMaxUtil(current, stoch, last_values);
 #if AMOEBA
+#if 0
 					Amoeba am(MINIMIZATION_TOL);
+#endif
 #endif
 					for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
 						for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
@@ -455,6 +463,10 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 								vect[3] = l;
 								vect[4] = ll;
 								vect[5] = m;
+
+#if 0
+                                                                std::cout<<h<<":"<<i<<":"<<j<<":"<<l<<":"<<ll<<":"<<m<<std::endl<<std::flush;
+#endif
 
 								current.current_states[ASTATE] = stoch.assets[j];
 								current.current_states[CAP1_SHOCK_STATE] =
@@ -482,7 +494,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #endif
 								temp1[K1STATE] =
 									sqrt(
-										MAX(MIN_CAPITAL, last_values.policy_fn[h][i][j][l][ll][m][K1STATE])
+										MAX(MIN_CAPITAL+0.00001, last_values.policy_fn[h][i][j][l][ll][m][K1STATE])
 										- MIN_CAPITAL);
 #if K2CHOICE
 								temp1[K2STATE] =
@@ -494,12 +506,11 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 								temp1[BSTATE - 1] =
 #endif
 									sqrt(
-										MAX(MIN_BONDS, last_values.policy_fn[h][i][j][l][ll][m][BSTATE])
+										MAX(MIN_BONDS+1, last_values.policy_fn[h][i][j][l][ll][m][BSTATE])
 										- MIN_BONDS);
 								VecDoub_I initial_point(temp1);
 								VecDoub temp2;
-								double minVal = 2;
-								if (l == 0 && ll == 0) {
+								double minVal = 0;
 									if (ub.constraintBinds()) {
 #if K2CHOICE
 										temp2 = VecDoub(NUM_CHOICE_VARS);
@@ -513,7 +524,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 										temp2[BSTATE - 1] = sqrt(ub.getBoundBorrow() - MIN_BONDS);
 #endif
-										minVal = -ub.getBoundUtil();
+										minVal = ub.getBoundUtil();
 									}
 									else {
 #if AMOEBA
@@ -522,12 +533,16 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 											std::cerr << "akmodel.cc-solve(): initial point is not of size 2, but of size " << initial_point.size();
 											exit(-1);
 										}
+#if 0
 										temp2 = am.minimize(initial_point, delta, ub);
+#else
+temp2 = BT::Simplex(ub, initial_point,MINIMIZATION_TOL);
+#endif
 										if (temp2.size() != 2) {
 											std::cerr << "ERROR! akmodel.cc - solve(): minimize returned std::vector of size " << temp2.size() << std::endl;
 											exit(-1);
 										}
-										minVal = -((vfiMaxUtil)ub)(temp2);
+										minVal = ((vfiMaxUtil)ub)(temp2);
 #elif BFGS
 										find_min_using_approximate_derivatives(bfgs_search_strategy(),
 											objective_delta_stop_strategy(1e-7),
@@ -541,36 +556,6 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 										delete temp3;
 #endif
 									}
-								}
-								else {
-#if K2CHOICE
-									temp2 = VecDoub(NUM_CHOICE_VARS);
-#else
-									temp2 = VecDoub(NUM_CHOICE_VARS - 1);
-#endif
-									temp2[K1STATE] =
-										sqrt(
-											in_process_values.policy_fn[h][i][j][0][0][m][K1STATE]
-											- MIN_CAPITAL);
-#if K2CHOICE
-									temp2[K2STATE] =
-										sqrt(
-											in_process_values.policy_fn[g][gg][h][i][j][0][0][m][K2STATE]
-											- MIN_CAPITAL);
-									temp2[BSTATE] =
-#else
-									temp2[BSTATE - 1] =
-#endif
-										sqrt(
-											in_process_values.policy_fn[h][i][j][0][0][m][BSTATE]
-											- MIN_BONDS);
-
-									VecInt vect2(vect);
-									vect2[3] = 0;
-									vect2[4] = 0;
-									minVal =
-										in_process_values.getValueFn(vect2);
-								}
 
 								in_process_values.policy_fn[h][i][j][l][ll][m][K1STATE] =
 									MIN_CAPITAL + utilityFunctions::integer_power(temp2[K1STATE], 2);
@@ -587,8 +572,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 									MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE - 1], 2);
 #endif
-								in_process_values.setValueFn(vect, minVal);
-								//std::cout << h << ":" << i << ":" << j << ":" << l << ":" << ll << ":" << m << "=" << minVal << std::endl;
+								in_process_values.setValueFn(vect, MIN(-minVal, 0));
 								in_process_values.consumption[h][i][j][l][ll][m] =
 									current.current_states[ASTATE]
 									- in_process_values.policy_fn[h][i][j][l][ll][m][K1STATE]

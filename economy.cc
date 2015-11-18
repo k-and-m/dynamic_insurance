@@ -59,7 +59,7 @@ double Economy::getAverageAssets(){
 void Economy::simulateOnePeriod(int newPhiState, double r, double agg1, double agg2){
 	phiState = newPhiState;
 #if OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(3)
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 #endif
 	for (int i = 0; i < (int)econSize; i++){
 		myHHs[i]->iterate(0,newPhiState, r, agg1, agg2);

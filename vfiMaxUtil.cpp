@@ -134,9 +134,9 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 		for (int h = 0; h < AGG_SHOCK_SIZE; h++) {
 			val[1] = h;
 			for (int i = 0; i < CAP_SHOCK_SIZE; i++) {
-				val[2] = 0;
+				val[2] = i;
 				for (int ii = 0; ii < CAP_SHOCK_SIZE; ii++) {
-					val[3] = 0;
+					val[3] = ii;
 					for (int j = 0; j < WAGE_SHOCK_SIZE; j++) {
 						val[4] = j;
 						VecDoub::const_iterator tempVec = curFns.getReorderedValueFnVector(val);
@@ -161,7 +161,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 						double aprime = get_wage(newState, curStoch) + (curSt->getTau() * NOMINAL_PRICE * k1prime)
 							+ (NOMINAL_PRICE * k2prime)
 							+ (curSt->getNextR()) * bprime
-							+ prod_fn(k1prime, k2prime, /*c1mgmt,*/ newState, curStoch);
+							+ prod_fn(k1prime, k2prime, newState, curStoch);
 
 						if (aprime != aprime) {
 							std::cout.precision(15);
@@ -188,7 +188,7 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 						u +=
 							BETA
 							* curStoch.transition[phiSt][agSt][cap1St][cap2St][wgSt][g][h][i][ii][j]
-							* intp;
+							* MIN(0, intp);
 					}
 				}
 			}
@@ -198,19 +198,6 @@ double vfiMaxUtil::operator() (const VecDoub state_prime) const
 		std::cout.precision(15);
 		std::cout << std::scientific;
 		std::cout << "ERROR! vfiMaxUtil.cc utility() - utility at end is " << u
-			<< ". (A,a:z1,z2)=(" << 1 << curSt->current_states[ASTATE] << ","
-			<< curSt->current_states[CAP1_SHOCK_STATE] << ","
-			<< curSt->current_states[CAP2_SHOCK_STATE] << ")"
-			<< " k1prime=" << k1prime << " k2prime=" << k2prime
-			<< " bprime=" << bprime << " consumption=" << consumption
-			<< " p1 =" << curSt->getTau() << " p2 =" << 1 << " r = " << curSt->getNextR()
-			<< std::endl << std::flush;
-		exit(-1);
-	}
-	if (u >= 0) {
-		std::cout.precision(15);
-		std::cout << std::scientific;
-		std::cout << "ERROR! vfiMaxUtil.cc utility() - utility at end is " << u << " which is >=0"
 			<< ". (A,a:z1,z2)=(" << 1 << curSt->current_states[ASTATE] << ","
 			<< curSt->current_states[CAP1_SHOCK_STATE] << ","
 			<< curSt->current_states[CAP2_SHOCK_STATE] << ")"
@@ -348,14 +335,14 @@ double vfiMaxUtil::getMaxBorrow(const double k1, const double k2/*, const double
 	newState.current_states[CAP2_SHOCK_STATE] = curStoch.shocks[0][0][0][0][0][EF_K2];
 	newState.current_states[WAGE_SHOCK_STATE] = curStoch.shocks[0][0][0][0][0][EF_W];
 	newState.current_states[AGG_SHOCK_STATE] = curStoch.shocks[0][0][0][0][0][EF_A];
-	newState.current_states[PHI_STATE] = curSt->current_states[PHI_STATE];
-	//	newState.current_states[PHI_STATE] = curStoch.shocks[0][0][0][0][0][EF_PHI];
+	//newState.current_states[PHI_STATE] = curSt->current_states[PHI_STATE];
+	newState.current_states[PHI_STATE] = curStoch.shocks[0][0][0][0][0][EF_PHI];
 	newState.current_indices[CAP1_SHOCK_STATE] = 0;
 	newState.current_indices[CAP2_SHOCK_STATE] = 0;
 	newState.current_indices[WAGE_SHOCK_STATE] = 0;
 	newState.current_indices[AGG_SHOCK_STATE] = 0;
-	newState.current_indices[PHI_STATE] = curSt->current_indices[PHI_STATE];
-	//	newState.current_indices[PHI_STATE] = 0;
+	//newState.current_indices[PHI_STATE] = curSt->current_indices[PHI_STATE];
+	newState.current_indices[PHI_STATE] = 0;
 
 	int phiState = newState.current_indices[PHI_STATE];
 #if 0

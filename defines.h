@@ -8,7 +8,7 @@
 #define MIN(a,b) ((a<b)?a:b)
 #define MAX(a,b) ((a>b)?a:b)
 
-#define RRA 2
+#define RRA 4
 
 #define AGG_SHOCK_SIZE 1
 
@@ -30,7 +30,7 @@
 #define CAP2_SHOCK_SPREAD 3 //Number of standard deviations per side for Tauchen
 
 #if ASSETSTATE
-#define MAX_ASSETS 40
+#define MAX_ASSETS 10
 #define MIN_ASSETS 0 
 #endif
 
@@ -79,11 +79,11 @@
 #define NUM_SHOCK_VARS 5
 
 //definitions for Krusell-Smith economy simulation
-#define SSPERIODS 2500
-#define NUMPERIODS 1500
+#define SSPERIODS 10000
+#define NUMPERIODS 5000
 #define TOTALPERIODS (SSPERIODS+NUMPERIODS)
 #define NUMHHS 200000
 
 //random price
-#define NOMINAL_PRICE 2.8
+#define NOMINAL_PRICE 1
 #endif
