@@ -10,13 +10,17 @@
 #define BFGS 0
 #define SIMULATED_ANNEALING 0
 #define POLICY_CONVERGENCE 0
-#define USE_MPI 1
+#define USE_MPI 0
 
 #include "BaseHeader.h"
 #include "utilityFunctions.h"
 #include "matrixIO.h"
 #include "matrix.h"
+#if 0
 #include "amoeba.h"
+#else
+#include "simplex.h"
+#endif
 #include "WorldEconomy.h"
 #include "vfiMaxUtil.h"
 #include <Eigen/Dense>
@@ -135,7 +139,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		for (int j = 0; j < PHI_STATES; j++) {
 			switch (i) {
 			case P_R:
-				recursEst[i][j][0] = 0.01707341618;
+				recursEst[i][j][0] = 0.052;
 				recursEst[i][j][1] = 0;
 				recursEst[i][j][2] = 0;
 				break;
@@ -205,6 +209,7 @@ double solveProblem(const VecDoub& phis, const VecDoub& tau, double c1prop, int 
 		VecDoub r_squareds(NUM_RECURSIVE_FNS);
 		Mat3Doub xres = getNextParameters(final1, stoch1, current1, final2, stoch2, current2, c1prop, r_squareds);
 
+                exit(-1);
 		avgDist = 0;
 		for (int i = 0; i < NUM_RECURSIVE_FNS; i++) {
 			avgDist += r_squareds[i];
@@ -884,6 +889,7 @@ void initialize(EquilFns& fns, const VecDoub& phis) {
 void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, EquilFns& final, const Mat3Doub& recEst, const COUNTRYID whichCountry) {
 	using namespace std;
 
+	State mpiState(phis, prices, recEst);
 #if USE_MPI
 	int numprocs, rank, namelen;
 	static int firstCall = 0;
@@ -948,7 +954,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 			for (int j = 0; j < ASSET_SIZE; j++) {
 #else
 #if OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(3)
 #endif
 		for (int g = 0; g < AGG_ASSET_SIZE; g++) {
 			for (int j = 0; j < ASSET_SIZE; j++) {
@@ -959,11 +965,14 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 							State current(phis, prices, recEst);
 							vfiMaxUtil ub = vfiMaxUtil(current, stoch, last_values);
 #if AMOEBA
+#if 0
 							Amoeba am(MINIMIZATION_TOL);
+#endif
 #endif
 							for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
 								for (int l = 0; l < CAP_SHOCK_SIZE; l++) {
 									for (int ll = 0; ll < CAP_SHOCK_SIZE; ll++) {
+//std::cout<<g<<":"<<gg<<":"<<h<<":"<<i<<":"<<m<<":"<<l<<":"<<ll<<":"<<j<<std::endl<<std::flush;
 										VecInt vect(8);
 										vect[0] = g;
 										vect[1] = gg;
@@ -1004,12 +1013,12 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #endif
 										temp1[K1STATE] =
 											sqrt(
-												MAX(MIN_CAPITAL, last_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE])
+												MAX(MIN_CAPITAL+MIN_CONSUMPTION, last_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE])
 												- MIN_CAPITAL);
 #if K2CHOICE
 										temp1[K2STATE] =
 											sqrt(
-												MAX(MIN_CAPITAL, last_values.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE])
+												MAX(MIN_CAPITAL+MIN_CONSUMPTION, last_values.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE])
 												- MIN_CAPITAL);
 										temp1[BSTATE] =
 #else
@@ -1035,7 +1044,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 #else
 												temp2[BSTATE - 1] = sqrt(ub.getBoundBorrow() - MIN_BONDS);
 #endif
-												minVal = -ub.getBoundUtil();
+												minVal = ub.getBoundUtil();
 											}
 											else {
 #if AMOEBA
@@ -1044,12 +1053,16 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 													std::cerr << "akmodel.cc-solve(): initial point is not of size 2, but of size " << initial_point.size();
 													exit(-1);
 												}
+#if 0
 												temp2 = am.minimize(initial_point, delta, ub);
+#else
+                  temp2 = BT::Simplex(ub, initial_point,VAL_TOL);
+#endif
 												if (temp2.size() != 2) {
 													std::cerr << "ERROR! akmodel.cc - solve(): minimize returned std::vector of size " << temp2.size() << std::endl;
 													exit(-1);
 												}
-												minVal = -((vfiMaxUtil)ub)(temp2);
+												minVal = ((vfiMaxUtil)ub)(temp2);
 #elif BFGS
 												find_min_using_approximate_derivatives(bfgs_search_strategy(),
 													objective_delta_stop_strategy(1e-7),
@@ -1090,7 +1103,7 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 											vect2[5] = 0;
 											vect2[6] = 0;
 											minVal =
-												in_process_values.getValueFn(vect2);
+												-in_process_values.getValueFn(vect2);
 										}
 
 										in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE] =
@@ -1109,11 +1122,17 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 											MIN_BONDS + utilityFunctions::integer_power(temp2[BSTATE - 1], 2);
 #endif
 										in_process_values.setValueFn(vect, minVal);
-										in_process_values.consumption[g][gg][h][i][j][l][ll][m] =
-											current.current_states[ASTATE]
-											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE]
-											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE]
+										double myTempCons = current.current_states[ASTATE]
+											- (current.getTau() * NOMINAL_PRICE * in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K1STATE])
+											- (NOMINAL_PRICE * in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][K2STATE])
 											- in_process_values.policy_fn[g][gg][h][i][j][l][ll][m][BSTATE];
+                                                                                
+										in_process_values.consumption[g][gg][h][i][j][l][ll][m] = myTempCons;
+                                                                                if(myTempCons < -1){
+                                                                                    std::cerr<<g<<":"<<gg<<":"<<h<<":"<<i<<":"<<j<<":"<<l<<":"<<m<<std::endl;
+                                                                                    std::cerr<<"Error! akmodel.cc-solve(): consumption < -1, should never happen. c=" << myTempCons << std::endl;
+                                                                                    exit(-1);
+                                                                                }
 									}
 								}
 							}
@@ -1151,8 +1170,8 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 										for (int m = 0; m < WAGE_SHOCK_SIZE; m++) {
 											in_process_values.consumption[f][g][h][i][ii][l][ll][m] =
 												stoch.assets[ii]
-												- in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][K1STATE]
-												- in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][K2STATE]
+												- (mpiState.getTau() * NOMINAL_PRICE * in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][K1STATE])
+												- (NOMINAL_PRICE * in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][K2STATE])
 												- in_process_values.policy_fn[f][g][h][i][ii][l][ll][m][BSTATE];
 										}
 									}
@@ -1190,19 +1209,55 @@ void solve(const VecDoub& phis, const VecDoub& prices, const EquilFns& orig, Equ
 				<< counter << std::endl
 #if POLICY_CONVERGENCE
 				<< "policy diff=" << diff << "       Value diff=" << diff2 << std::endl;
+                        for(int printInd=0;printInd<NUM_STATE_VARS;printInd++){
+                           if(printInd>0){
+                               std::cout << ":";
+                           }
+                           std::cout << location1[printInd];
+                        }
+                        std::cout << std::endl;
+                        for(int printInd=0;printInd<NUM_STATE_VARS;printInd++){
+                           if(printInd>0){
+                               std::cout << ":";
+                           }
+                           std::cout << location2[printInd];
+                        }
+                        std::cout << std::endl;
 #else
 				<< "policy diff=" << diff2 << "       Value diff=" << diff << std::endl;
+                        for(int printInd=0;printInd<NUM_STATE_VARS;printInd++){
+                           if(printInd>0){
+                               std::cout << ":";
+                           }
+                           std::cout << location1[printInd];
+                        }
+                        std::cout << std::endl;
+                        for(int printInd=0;printInd<NUM_STATE_VARS;printInd++){
+                           if(printInd>0){
+                               std::cout << ":";
+                           }
+                           std::cout << location2[printInd];
+                        }
+                        std::cout << std::endl;
 #endif
 			std::cout << max_iterations << endl;
 		}
 
 		last_values = in_process_values;
-		printResults(last_values, recEst, phis, whichCountry);
+#if USE_MPI
+		if(rank==0){
+#endif
+			printResults(last_values, recEst, phis, whichCountry);
+#if USE_MPI
+		}
+#endif
 
+#if USE_MPI
 		delete[] combinedPolicy;
 		delete[] combinedValue;
 		combinedPolicy = NULL;
 		combinedValue = NULL;
+#endif
 
 	}
 

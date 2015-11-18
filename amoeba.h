@@ -61,6 +61,7 @@ struct Amoeba {
 		MatDoub p(pp);
 		//p=pp;
 		//y.resize(mpts);
+                std::cout<<"New call to amoeba.Minimize"<<std::flush<<std::endl;
 		for (int i=0; i<mpts;i++)
 		{
 			for(int j=0; j<ndim; j++){
@@ -87,11 +88,11 @@ struct Amoeba {
 					ihi=i;
 				}else if (y[i]> y[inhi] && i != ihi)
 				{
-					inhi=1;
+					inhi=i;
 				}
 			}
 			double rtol=2.0*ABS(y[ihi]-y[ilo])/(ABS(y[ihi])+ABS(y[ilo])+TINY);
-			if ((rtol<ftol)||(nfunc >= NMAX))
+			if (rtol<ftol)
 			{
 				SWAP(y[0], y[ilo]);
 				for (int i=0; i<ndim;i++)

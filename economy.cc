@@ -71,7 +71,7 @@ void Economy::testOnePeriod(int newPhiState, double r, double agg1, double agg2,
 	mt19937 localgener = mt19937(randNum);
 
 #if OPENMP
-//#pragma omp parallel for schedule(dynamic) num_threads(3)
+#pragma omp parallel for schedule(dynamic) num_threads(3)
 #endif
 	for (int i = 0; i < (int)econSize; i++) {
 		double randNum = localdistr(localgener);
